@@ -46,7 +46,7 @@ function New-GitHubOAuthToken
   }
 }
 
-function Get-GithubIssues
+function Get-GitHubIssues
 {
   [CmdletBinding()]
   param(
@@ -184,4 +184,4 @@ function New-GitHubPullRequest
 }
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
-  Get-GithubIssues
+  Get-GitHubIssues
