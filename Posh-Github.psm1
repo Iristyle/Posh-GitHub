@@ -210,14 +210,17 @@ function New-GitHubPullRequest
 
 function Update-PoshGitHub
 {
-  $installedPath = Get-CurrentDirectory
-  Write-Verbose "Found Post-GitHub module at $installedPath"
+  $installedPath = Get-Module Posh-GitHub |
+    Select -ExpandProperty Path |
+    Split-Path
+
+  Write-Host "Found Post-GitHub module at $installedPath"
   Push-Location $installedPath
-  git reset --hard HEAD
+  git reset --hard HEAD | Out-Null
   git pull
   Pop-Location
   Remove-Module Posh-GitHub
-  Import-Module (Join-Path $installedPath 'Posh-GitHub')
+  Import-Module (Join-Path $installedPath 'Posh-GitHub.psm1')
 }
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,

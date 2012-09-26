@@ -52,6 +52,10 @@ then reloads it.
 
 In the future, this will be handled by a package manager, but for now it works.
 
+Note that it uses the path of the currently loaded Posh-GitHub module to
+determine which physical Powershell module to update.  As long as the currently
+loaded module is the one installed to your profile, this will work fine.
+
 ### Automatic via PsGet
 
 It seems like it would make sense to distribute this through [PsGet][PsGet].
