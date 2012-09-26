@@ -122,8 +122,9 @@ function New-GitHubPullRequest
 
     [Parameter(Mandatory = $false)]
     [string]
-    [ValidatePattern('^\w+?:\w+?$')]
-    $Head = $null
+    [ValidatePattern('^$|^\w+?:[a-zA-Z0-9\-]{1,40}$')]
+    [AllowNull()]
+    $Head = ''
   )
 
   if ([string]::IsNullOrEmpty($Owner) -and [string]::IsNullOrEmpty($Repository))
