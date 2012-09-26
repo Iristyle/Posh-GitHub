@@ -40,6 +40,18 @@ $profilePath = Join-Path (Split-Path $modulePath) `
   Out-File -FilePath $profilePath -Append -Encoding UTF8
 ```
 
+#### Updating
+
+```powershell
+Update-PoshGitHub
+```
+
+This is a real simple mechanism for now -- it finds where the module is
+installed, it does a `git pull` to refresh the code, unloads the module and
+then reloads it.
+
+In the future, this will be handled by a package manager, but for now it works.
+
 ### Automatic via PsGet
 
 It seems like it would make sense to distribute this through [PsGet][PsGet].

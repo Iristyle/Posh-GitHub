@@ -1,3 +1,9 @@
+function Get-CurrentDirectory
+{
+  $thisName = $MyInvocation.MyCommand.Name
+  [IO.Path]::GetDirectoryName((Get-Content function:$thisName).File)
+}
+
 function New-GitHubOAuthToken
 {
   [CmdletBinding()]
@@ -184,5 +190,17 @@ function New-GitHubPullRequest
   $client.UploadString($uri, $json)
 }
 
+function Update-PoshGitHub
+{
+  $installedPath = Get-CurrentDirectory
+  Write-Verbose "Found Post-GitHub module at $installedPath"
+  Push-Location $installedPath
+  git reset --hard HEAD
+  git pull
+  Pop-Location
+  Remove-Module Posh-GitHub
+  Import-Module (Join-Path $installedPath 'Posh-GitHub')
+}
+
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
-  Get-GitHubIssues
+  Get-GitHubIssues, Update-PoshGitHub
