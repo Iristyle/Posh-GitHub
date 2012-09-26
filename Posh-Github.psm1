@@ -129,7 +129,7 @@ function New-GitHubPullRequest
   if ([string]::IsNullOrEmpty($Owner) -and [string]::IsNullOrEmpty($Repository))
   {
     #try to sniff out the repo based on 'upstream'
-    $matches.Clear()
+    if ($matches -ne $null) { $matches.Clear() }
     git remote -v show |
       ? { $_ -match 'upstream\t.*github.com\/(.*)\/(.*) \((fetch|push)\)' } |
       Out-Null
