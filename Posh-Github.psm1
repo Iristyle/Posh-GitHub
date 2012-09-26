@@ -187,7 +187,25 @@ function New-GitHubPullRequest
 
   $client = New-Object Net.WebClient
   $client.Headers.Add('Content-Type', 'application/json')
-  $client.UploadString($uri, $json)
+
+  try
+  {
+    $response = $client.UploadString($uri, $json)
+
+    $pulls = $response |
+      Select-String '"html_url":"(.*?)"' -AllMatches
+
+    $url = $pulls.Matches |
+      ? { $_.Value -match '/pull/' } |
+      Select -First 1 -ExpandProperty Groups |
+      Select -Last 1 ExpandProperty Value
+
+    Write-Host "Pull request sent to $url"
+  }
+  catch
+  {
+    Write-Host "An unexpected error occurred $($Error[0])"
+  }
 }
 
 function Update-PoshGitHub
