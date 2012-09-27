@@ -157,6 +157,20 @@ New-GitHubPullRequest -Title 'fixes' -Head 'myusername:somebranch'
 
 Note that GitHub generally requires that head be prefixed with `username:`
 
+## Get-GitHubEvents
+
+Will list, in chronological order, the last 30 events that you have generated
+
+```powershell
+Get-GitHubEvents
+```
+
+Will list the public events for another user
+
+```powershell
+Get-GitHubEvents -User Iristyle
+```
+
 ## Roadmap
 
 None really.. just waiting to see what I might need.

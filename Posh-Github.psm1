@@ -205,6 +205,59 @@ function New-GitHubPullRequest
   }
 }
 
+function Get-GitHubEvents
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateScript({ ![string]::IsNullOrEmpty($_) -or `
+      ![string]::IsNullOrEmpty($Env:GITHUB_USERNAME) })]
+    $User = $Env:GITHUB_USERNAME
+  )
+
+  try
+  {
+    $uri = ("https://api.github.com/users/$User/events" +
+      "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+    $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
+    #TODO: this blows up
+    #Write-Verbose $global:GITHUB_API_OUTPUT
+
+    $global:GITHUB_API_OUTPUT[($global:GITHUB_API_OUTPUT.Length - 1)..0] |
+      % {
+        $date = [DateTime]::Parse($_.created_at).ToString('g')
+        $type = $_.type.Replace('Event', '')
+        $firstLine = if ($type -eq 'Gist' )
+          { "$($_.payload.gist.action) Gist at $($_.payload.gist.html_url)"}
+        elseif ($type -eq 'PullRequest' )
+          { "$($_.payload.action) Pull $($_.payload.number) for $($_.repo.name)" }
+        else
+          { "$type for $($_.repo.name)" }
+
+        #TODO: consider adding comment handling $_.payload.comment.body when
+        #type is 'CommitComment' - but need to be able to use accept header to
+        #get plaintext instead of markdown
+
+        $description = if ($type -eq 'Gist' )
+          { "$($_.payload.gist.description)"}
+        else
+          { $_.payload.commits.message }
+
+        Write-Host "`n$($date): $firstLine"
+        if (![string]::IsNullOrEmpty($description))
+        {
+          $description -split "`n" | % { Write-Host "`t$_" }
+        }
+      }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function Update-PoshGitHub
 {
   $installedPath = Get-Module Posh-GitHub |
@@ -221,4 +274,4 @@ function Update-PoshGitHub
 }
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
-  Get-GitHubIssues, Update-PoshGitHub
+  Get-GitHubIssues, Get-GitHubEvents, Update-PoshGitHub
