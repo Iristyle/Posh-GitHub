@@ -103,6 +103,19 @@ environment variable
 Set-GitHubUserName Iristyle
 ```
 
+### Get-GitHubRepositories
+
+List all your repositories - gives a fork indicator, a date for when the last
+update (push) occurred, how many open issues and size
+
+```powershell
+Get-GitHubRepositories
+```
+
+```powershell
+Get-GitHubRepositories -Type owner -Sort pushed
+```
+
 ### Get-GitHubIssues
 
 Will get a list of issue number / title for a given repo owner

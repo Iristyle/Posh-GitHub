@@ -270,6 +270,74 @@ function Set-GitHubUserName
   $Env:GITHUB_USERNAME = $User
 }
 
+function Get-GitHubRepositories
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateScript({ ![string]::IsNullOrEmpty($_) -or `
+      ![string]::IsNullOrEmpty($Env:GITHUB_USERNAME) })]
+    $User = $Env:GITHUB_USERNAME,
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateSet('all', 'owner', 'member')]
+    $Type = 'all',
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateSet('created', 'updated', 'pushed', 'full_name')]
+    $Sort = 'full_name',
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateSet('asc', 'desc')]
+    [AllowNull()]
+    $Direction = $null
+  )
+
+  try
+  {
+    if ($Direction -eq $null)
+    {
+      $Direction = if ($Sort -eq 'full_name') { 'asc' } else { 'desc' }
+    }
+
+    $uri = ("https://api.github.com/users/$User/repos?type=$Type&sort=$Sort" +
+      "&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+    $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
+    #TODO: this blows up
+    #Write-Verbose $global:GITHUB_API_OUTPUT
+
+    Write-Host "Found $($global:GITHUB_API_OUTPUT.Count) repos for $User"
+
+    $global:GITHUB_API_OUTPUT |
+      % {
+        $size = if ($_.size -lt 1024) { "$($_.size) KB" }
+          else { "$([Math]::Round($_.size, 2)) MB"}
+        $pushed = [DateTime]::Parse($_.pushed_at).ToString('g')
+        $created = [DateTime]::Parse($_.created_at).ToString('g')
+
+        #$private = if ($_.private) { ' ** Private **' } else { '' }
+        $fork = if ($_.fork) { ' [F!]' } else { '' }
+
+        Write-Host ("`n$($_.name)$private$fork : Updated $pushed" +
+          " - [$($_.open_issues)] Issues - $size")
+
+        if (![string]::IsNullOrEmpty($_.description))
+        {
+          Write-Host "`t$($_.description)"
+        }
+      }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function Update-PoshGitHub
 {
   $installedPath = Get-Module Posh-GitHub |
@@ -286,4 +354,4 @@ function Update-PoshGitHub
 }
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
-  Get-GitHubIssues, Get-GitHubEvents, Update-PoshGitHub
+  Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub
