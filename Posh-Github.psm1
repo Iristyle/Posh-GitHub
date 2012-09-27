@@ -258,6 +258,18 @@ function Get-GitHubEvents
   }
 }
 
+function Set-GitHubUserName
+{
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]
+    $User
+  )
+
+  [Environment]::SetEnvironmentVariable('GITHUB_USERNAME', $User, 'User')
+  $Env:GITHUB_USERNAME = $User
+}
+
 function Update-PoshGitHub
 {
   $installedPath = Get-Module Posh-GitHub |

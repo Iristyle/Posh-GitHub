@@ -94,6 +94,15 @@ New-GitHubOAuthToken -UserName Bob -Password bobpassword
 New-GitHubOAuthToken -UserName Bob -Password bobpassword -NoEnvironmentVariable
 ```
 
+### Set-GitHubUserName
+
+Adds the username to the current Powershell session and sets a global User
+environment variable
+
+```powershell
+Set-GitHubUserName Iristyle
+```
+
 ### Get-GitHubIssues
 
 Will get a list of issue number / title for a given repo owner
