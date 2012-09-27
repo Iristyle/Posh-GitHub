@@ -5,17 +5,19 @@ Powershell cmdlets that expose the GitHub API
 ## Early Code
 
 This is a super super early take on some rudimentary GitHub functionality.
-I will continue to improve this over time as need grows / time allows.
+I will continue to improve this over time as need grows / time allows.  There
+may be bugs or things I haven't thought of -- please report if that's the case!
 
 ## Compatibility
 
-* This is written for Powershell v2 / .NET4 at the moment.  It should work just
-fine under PowerShell v3.  Yes, I know that instead of using WebClient, I could
-have used [Invoke-RestMethod][invoke-rest] (and might in the future)
+* This is written for Powershell v3 and makes use of the simplified
+[Invoke-RestMethod][invoke-rest] instead of the `WebClient` class.
+  * Powershell v3 can be installed with [Chocolatey][Choc] via `cinst powershell`
 
 * This is written against GitHub API v3
 
 [invoke-rest]: http://technet.microsoft.com/en-us/library/hh849971.aspx
+[Choc]: http://www.chocolatey.org
 
 ## Installation
 
@@ -63,7 +65,20 @@ First things first though ;0
 
 [PsGet]:http://psget.net/
 
-## Support Commands
+## Supported Commands
+
+### Environment Variables
+
+Cmdlets are set to use the following environment variables as defaults
+
+* `GITHUB_OAUTH_TOKEN` - Required for all cmdlets - use `New-GitHubOAuthToken`
+  to establish one
+* `GITHUB_USERNAME` - Can be optionally set to specify a global default user
+
+### Last Command Output
+
+A Powershell object created from the incoming JSON is always stored
+in the variable `$GITHUB_API_OUTPUT` after each call to the GitHub API
 
 ### New-GitHubOAuthToken
 
@@ -73,6 +88,10 @@ username/password in basic auth over HTTPS.  The result is stashed in the
 
 ```powershell
 New-GitHubOAuthToken -UserName Bob -Password bobpassword
+```
+
+```powershell
+New-GitHubOAuthToken -UserName Bob -Password bobpassword -NoEnvironmentVariable
 ```
 
 ### Get-GitHubIssues

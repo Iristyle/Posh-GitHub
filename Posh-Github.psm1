@@ -18,7 +18,7 @@ function New-GitHubOAuthToken
 
     [Parameter(Mandatory = $false)]
     [switch]
-    $SetEnvironmentVariable = $true,
+    $NoEnvironmentVariable = $false,
 
     [Parameter(Mandatory = $false)]
     [string]
@@ -27,20 +27,28 @@ function New-GitHubOAuthToken
 
   try
   {
-    $client = (New-Object Net.WebClient)
-    $uri = 'https://api.github.com/authorizations'
-    $client.Headers.Add('Authorization',
-      'Basic ' + [Convert]::ToBase64String(
-        [Text.Encoding]::ASCII.GetBytes("$($userName):$($password)")))
-    $client.Headers.Add('Content-Type', 'application/json')
+    $postData = @{
+      scopes = @('repo');
+      note = $Note
+    }
 
-    $json = "{`"scopes`": [ `"repo`" ],`"note`": `"$note`"}"
-    $apiOutput = $client.UploadString($uri, $json)
-    Write-Host $apiOutput
-    $token = $apiOutput -match '"token":"(.*?)",' | % { $matches[1] }
+    $params = @{
+      Uri = 'https://api.github.com/authorizations';
+      Method = 'POST';
+      Headers = @{
+        Authorization = 'Basic ' + [Convert]::ToBase64String(
+          [Text.Encoding]::ASCII.GetBytes("$($userName):$($password)"));
+      }
+      ContentType = 'application/json';
+      Body = (ConvertTo-Json $postData -Compress)
+    }
+    $global:GITHUB_API_OUTPUT = Invoke-RestMethod @params
+    Write-Verbose $global:GITHUB_API_OUTPUT
+
+    $token = $GITHUB_API_OUTPUT | Select -ExpandProperty Token
     Write-Host "New OAuth token is $token"
 
-    if ($SetEnvironmentVariable)
+    if (!$NoEnvironmentVariable)
     {
       $Env:GITHUB_OAUTH_TOKEN = $token
       [Environment]::SetEnvironmentVariable('GITHUB_OAUTH_TOKEN', $token, 'User')
@@ -48,7 +56,7 @@ function New-GitHubOAuthToken
   }
   catch
   {
-    Write-Host 'An unexpected error occurred - likely bad username / password'
+    Write-Error "An unexpected error occurred (bad user/password?) $($Error[0])"
   }
 }
 
@@ -71,30 +79,23 @@ function Get-GitHubIssues
 
   try
   {
-    $client = (New-Object Net.WebClient)
     $uri = ("https://api.github.com/repos/$Owner/$Repository/issues" +
      "?state=$state&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
-    $client.Headers.Add('Accept', 'application/vnd.github.v3.text+json')
+    #no way to set Accept header with Invoke-RestMethod
+    #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
+    #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
 
     Write-Host "Requesting issues for $Owner/$Repository"
-    $apiOutput = $client.DownloadString($uri)
-    $Env:Github_Api_Output = $apiOutput
-    $titles = $apiOutput |
-      Select-String -Pattern '"title":"([^"]*?)",' -AllMatches
-    $numbers = $apiOutput |
-      Select-String -Pattern '"number":(\d+),' -AllMatches
+    $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
+    Write-Verbose $global:GITHUB_API_OUTPUT
 
-    0..($numbers.Matches.Count - 1) |
-    % {
-      $number = $numbers.Matches[$_].Groups[1].Value
-      $title = $titles.Matches[$_].Groups[1].Value
-      Write-Host "Issue $number : $title"
-    }
+    $global:GITHUB_API_OUTPUT |
+      % { Write-Host "Issue $($_.Number): $($_.Title)" }
   }
   catch
   {
-    Write-Host "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $($Error[0])"
   }
 }
 
@@ -168,43 +169,41 @@ function New-GitHubPullRequest
   }
   # TODO: find a way to determine if the specified HEAD is valid??
 
-  $uri = ("https://api.github.com/repos/$Owner/$Repository/pulls" +
-    "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
-
+  $postData = @{ head = $Head; base = $Base }
   switch ($PsCmdlet.ParameterSetName)
   {
     'Issue' {
-      $json = "{`"issue`":`"$IssueId`",`"head`":`"$Head`",`"base`":`"$Base`"}"
+      $postData.issue = $IssueId
     }
     'Title' {
-      $json = "{`"title`":`"$title`",`"body`":`"$body`",`"head`":`"$Head`",`"base`":`"$Base`"}"
+      $postData.title = $Title
+      $postData.body = $Body
     }
   }
 
   Write-Host "Sending pull request to $Owner/$Repository from $Head"
   Write-Verbose $uri
-  Write-Verbose $json
-
-  $client = New-Object Net.WebClient
-  $client.Headers.Add('Content-Type', 'application/json')
+  Write-Verbose $postData
 
   try
   {
-    $response = $client.UploadString($uri, $json)
+    $params = @{
+      Uri = ("https://api.github.com/repos/$Owner/$Repository/pulls" +
+        "?access_token=${Env:\GITHUB_OAUTH_TOKEN}");
+      Method = 'POST';
+      ContentType = 'application/json';
+      Body = (ConvertTo-Json $postData -Compress);
+    }
 
-    $pulls = $response |
-      Select-String '"html_url":"(.*?)"' -AllMatches
+    $global:GITHUB_API_OUTPUT = Invoke-RestMethod @params
+    Write-Verbose $global:GITHUB_API_OUTPUT
 
-    $url = $pulls.Matches |
-      ? { $_.Value -match '/pull/' } |
-      Select -First 1 -ExpandProperty Groups |
-      Select -Last 1 ExpandProperty Value
-
+    $url = $global:GITHUB_API_OUTPUT | Select -ExpandProperty 'html_url'
     Write-Host "Pull request sent to $url"
   }
   catch
   {
-    Write-Host "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $($Error[0])"
   }
 }
 
