@@ -179,7 +179,22 @@ New-GitHubPullRequest -Title 'fixes' -Head 'myusername:somebranch'
 
 Note that GitHub generally requires that head be prefixed with `username:`
 
-## Get-GitHubEvents
+### Get-GitHubPullRequests
+
+Lists all open pull requests against your forks, assuming you have set the
+`GITHUB_USERNAME` environment variable
+
+```powershell
+Get-GitHubPullRequests
+```
+
+Lists all open public pull requests against the given users forks
+
+```powershell
+Get-GitHubPullRequests -User Iristyle
+```
+
+### Get-GitHubEvents
 
 Will list, in chronological order, the last 30 events that you have generated
 

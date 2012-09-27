@@ -338,6 +338,68 @@ function Get-GitHubRepositories
   }
 }
 
+function Get-GitHubPullRequests
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateScript({ ![string]::IsNullOrEmpty($_) -or `
+      ![string]::IsNullOrEmpty($Env:GITHUB_USERNAME) })]
+    $User = $Env:GITHUB_USERNAME,
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateSet('open', 'closed')]
+    $State = 'open'
+  )
+
+  try
+  {
+    $totalCount = 0
+    $uri = ("https://api.github.com/users/$User/repos" +
+      "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+    $global:GITHUB_API_OUTPUT = @{
+      RepoList = Invoke-RestMethod -Uri $uri;
+      Repos = @();
+    }
+    #TODO: this blows up
+    #Write-Verbose $global:GITHUB_API_OUTPUT
+
+    $forks = $global:GITHUB_API_OUTPUT.RepoList | ? { $_.fork }
+    Write-Host "Found $($forks.Count) forked repos for $User"
+
+    $forks |
+      % {
+        $repo = Invoke-RestMethod -Uri $_.url
+
+        $uri = ("https://api.github.com/repos/$($repo.parent.full_name)/pulls" +
+          "?state=$State&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+        $pulls = Invoke-RestMethod -Uri $uri
+
+        $global:GITHUB_API_OUTPUT.Repos += @{ Repo = $repo; Pulls = $pulls }
+
+        $pulls |
+          ? { $_.user.login -eq $User } |
+          % {
+            $totalCount++
+            $updated = if ([string]::IsNullOrEmpty($_.updated_at)) { $_.created_at }
+              else { $_.updated_at }
+            $updated = [DateTime]::Parse($updated).ToString('g')
+            Write-Host "`n$($repo.name) pull $($_.number) - $($_.title) - $updated"
+            Write-Host "`t$($_.issue_url)"
+          }
+      }
+
+    Write-Host "`nFound $totalCount open pull requests for $User"
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function Update-PoshGitHub
 {
   $installedPath = Get-Module Posh-GitHub |
@@ -354,4 +416,5 @@ function Update-PoshGitHub
 }
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
-  Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub
+  Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub,
+  Get-GitHubPullRequests
