@@ -182,8 +182,6 @@ function New-GitHubPullRequest
   }
 
   Write-Host "Sending pull request to $Owner/$Repository from $Head"
-  Write-Verbose $uri
-  Write-Verbose $postData
 
   try
   {
