@@ -28,18 +28,15 @@ Git clone this to your user modules directory
 ```powershell
 #Find appropriate module directory for user
 $modulePath = $Env:PSModulePath -split ';' |
-  ? { $_.StartsWith($Env:USERPROFILE) } |
+  ? { $_.StartsWith($HOME) } |
   Select -First 1
 $poshGitHub = Join-Path $modulePath 'posh-github'
 
 git clone https://github.com/Iristyle/Posh-GitHub $poshGitHub
 
 #add the call to Import-Module to user profile
-$profilePath = Join-Path (Split-Path $modulePath) `
-  'Microsoft.PowerShell_profile.ps1'
-
 'Import-Module Posh-Github' |
-  Out-File -FilePath $profilePath -Append -Encoding UTF8
+  Out-File -FilePath $PROFILE -Append -Encoding UTF8
 ```
 
 #### Updating
