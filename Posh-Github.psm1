@@ -417,7 +417,7 @@ function Update-PoshGitHub
     return
   }
 
-  Write-Host "Found Post-GitHub module at $installedPath"
+  Write-Host "Found Posh-GitHub module at $installedPath"
   git reset --hard HEAD | Out-Null
   git pull | Write-Host
   Pop-Location
