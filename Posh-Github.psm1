@@ -307,7 +307,19 @@ function Get-GitHubRepositories
     $uri = ("https://api.github.com/users/$User/repos?type=$Type&sort=$Sort" +
       "&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
-    $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
+    $global:GITHUB_API_OUTPUT = @()
+
+    do
+    {
+      $response = Invoke-WebRequest -Uri $uri
+      $global:GITHUB_API_OUTPUT += ($response.Content | ConvertFrom-Json)
+
+      if ($matches -ne $null) { $matches.Clear() }
+      $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
+        % { $matches[1] }
+    } while ($uri -ne $null)
+
+
     #TODO: this blows up
     #Write-Verbose $global:GITHUB_API_OUTPUT
 
@@ -361,9 +373,20 @@ function Get-GitHubPullRequests
       "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
     $global:GITHUB_API_OUTPUT = @{
-      RepoList = Invoke-RestMethod -Uri $uri;
+      RepoList = @();
       Repos = @();
     }
+
+    do
+    {
+      $response = Invoke-WebRequest -Uri $uri
+      $global:GITHUB_API_OUTPUT.RepoList += ($response.Content | ConvertFrom-Json)
+
+      if ($matches -ne $null) { $matches.Clear() }
+      $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
+        % { $matches[1] }
+    } while ($uri -ne $null)
+
     #TODO: this blows up
     #Write-Verbose $global:GITHUB_API_OUTPUT
 
