@@ -410,7 +410,7 @@ function Update-PoshGitHub
   Push-Location $installedPath
 
   #DANGER - be safe and abort as git reset --hard could do damage in wrong spot
-  if (($installedPath -eq $null) -or ((Get-Location) -ne $installedPath))
+  if (($installedPath -eq $null) -or ((Get-Location).Path -ne $installedPath))
   {
     Pop-Location
     throw "Could not find Posh-GitHub module / reset path - Update aborted!"
