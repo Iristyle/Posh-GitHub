@@ -129,7 +129,7 @@ function New-GitHubPullRequest
 
     [Parameter(Mandatory = $false)]
     [string]
-    [ValidatePattern('^$|^\w+?:[a-zA-Z0-9\-]{1,40}$')]
+    [ValidatePattern('^$|^\w+?:[a-zA-Z0-9\-\.]{1,40}$')]
     [AllowNull()]
     $Head = ''
   )
