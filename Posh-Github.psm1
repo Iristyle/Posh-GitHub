@@ -148,7 +148,7 @@ function New-GitHubPullRequest
     }
 
     $Owner = $matches[1]
-    $Repository = $matches[2]
+    $Repository = $matches[2] -replace '\.git$', ''
   }
   elseif ([string]::IsNullOrEmpty($Owner) -or [string]::IsNullOrEmpty($Repository))
   {
