@@ -57,10 +57,12 @@ loaded module is the one installed to your profile, this will work fine.
 
 ### Automatic via PsGet
 
-It seems like it would make sense to distribute this through [PsGet][PsGet].
+It seems like it would make sense to distribute this through [PsGet][PsGet] or
+[Chocolatey][Chocolatey].
 First things first though ;0
 
-[PsGet]:http://psget.net/
+[PsGet]: http://psget.net/
+[Chocolatey]: http://www.chocolatey.org
 
 ## Supported Commands
 
@@ -69,7 +71,7 @@ First things first though ;0
 Cmdlets are set to use the following environment variables as defaults
 
 * `GITHUB_OAUTH_TOKEN` - Required for all cmdlets - use `New-GitHubOAuthToken`
-  to establish one
+  to establish a token and automatically set this variable for the current user
 * `GITHUB_USERNAME` - Can be optionally set to specify a global default user
 
 ### Last Command Output
@@ -89,6 +91,14 @@ New-GitHubOAuthToken -UserName Bob -Password bobpassword
 
 ```powershell
 New-GitHubOAuthToken -UserName Bob -Password bobpassword -NoEnvironmentVariable
+```
+
+### Get-GitHubOAuthTokens
+
+Used to list all the authorizations you have provided to applications / tooling
+
+```powershell
+Get-GitHubOAuthTokens Bob bobspass
 ```
 
 ### Set-GitHubUserName

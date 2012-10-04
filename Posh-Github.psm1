@@ -62,6 +62,44 @@ function New-GitHubOAuthToken
   }
 }
 
+function Get-GitHubOAuthTokens
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]
+    $UserName,
+
+    [Parameter(Mandatory = $true)]
+    [string]
+    $Password
+  )
+
+  try
+  {
+    $params = @{
+      Uri = 'https://api.github.com/authorizations';
+      Headers = @{
+        Authorization = 'Basic ' + [Convert]::ToBase64String(
+          [Text.Encoding]::ASCII.GetBytes("$($userName):$($password)"));
+      }
+    }
+    $global:GITHUB_API_OUTPUT = Invoke-RestMethod @params
+    #Write-Verbose $global:GITHUB_API_OUTPUT
+
+    $global:GITHUB_API_OUTPUT |
+      % {
+        $date = [DateTime]::Parse($_.created_at).ToString('g')
+        Write-Host "`n$($_.app.name) - Created $date"
+        Write-Host "`t$($_.token)`n`t$($_.app.url)"
+      }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred (bad user/password?) $($Error[0])"
+  }
+}
+
 function Get-GitHubIssues
 {
   [CmdletBinding()]
