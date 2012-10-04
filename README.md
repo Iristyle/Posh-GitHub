@@ -213,6 +213,22 @@ Lists all open public pull requests against the given users forks
 Get-GitHubPullRequests -User Iristyle
 ```
 
+### Get-GitHubTeams
+
+The default parameterless version will use the `GITHUB_ORG` environment variable
+to get the list of teams, their ids and members.
+
+```powershell
+Get-GitHubTeams
+```
+
+This will find all the teams for the EastPoint organization.  You must have
+access to the given organization to list its teams.
+
+```powershell
+Get-GitHubTeams EastPoint
+```
+
 ### Get-GitHubEvents
 
 Will list, in chronological order, the last 30 events that you have generated

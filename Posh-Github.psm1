@@ -475,6 +475,48 @@ function Get-GitHubPullRequests
   }
 }
 
+function Get-GitHubTeams
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG
+  )
+
+  if ([string]::IsNullOrEmpty($Organization))
+    { throw "An organization must be supplied"}
+
+  try
+  {
+    $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+    $uri = "https://api.github.com/orgs/$Organization/teams$token"
+    $teamIds = Invoke-RestMethod -Uri $uri
+    #Write-Verbose $global:GITHUB_API_OUTPUT
+
+    $global:GITHUB_API_OUTPUT = @()
+    $teamIds |
+      % {
+        $teamUri = "https://api.github.com/teams/$($_.id)$token";
+        $membersUri = "https://api.github.com/teams/$($_.id)/members$token";
+        $results = @{
+          Team = Invoke-RestMethod -Uri $teamUri;
+          Members = Invoke-RestMethod -Uri $membersUri;
+        }
+
+        $global:GITHUB_API_OUTPUT += $results
+
+        $t = $results.Team
+        Write-Host "`n[$($t.id)] $($t.name) - $($t.permission) - $($t.repos_count) repos"
+        $results.Members | % { Write-Host "`t$($_.login)" }
+      }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function Update-PoshGitHub
 {
   #$null if we can't find module (not sure how that happens, but just in case!)
@@ -502,4 +544,5 @@ function Update-PoshGitHub
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub,
-  Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization
+  Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
+  Get-GitHubTeams
