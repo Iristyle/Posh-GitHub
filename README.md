@@ -72,7 +72,10 @@ Cmdlets are set to use the following environment variables as defaults
 
 * `GITHUB_OAUTH_TOKEN` - Required for all cmdlets - use `New-GitHubOAuthToken`
   to establish a token and automatically set this variable for the current user
-* `GITHUB_USERNAME` - Can be optionally set to specify a global default user
+* `GITHUB_USERNAME` - Can be optionally set to specify a global default user -
+use the `Set-GitHubUserName` helper
+* `GITHUB_ORGANIZATION` - Can be optionally set to specify a global default
+organization - use the `Set-GitHubOrganization` helper
 
 ### Last Command Output
 
@@ -108,6 +111,15 @@ environment variable
 
 ```powershell
 Set-GitHubUserName Iristyle
+```
+
+### Set-GitHubOrganization
+
+Adds the organization to the current Powershell session and sets a global User
+environment variable
+
+```powershell
+Set-GitHubOrganization EastPoint
 ```
 
 ### Get-GitHubRepositories

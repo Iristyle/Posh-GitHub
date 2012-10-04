@@ -310,6 +310,18 @@ function Set-GitHubUserName
   $Env:GITHUB_USERNAME = $User
 }
 
+function Set-GitHubOrganization
+{
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]
+    $Organization
+  )
+
+  [Environment]::SetEnvironmentVariable('GITHUB_ORG', $Organization, 'User')
+  $Env:GITHUB_USERNAME = $Organization
+}
+
 function Get-GitHubRepositories
 {
   [CmdletBinding()]
@@ -490,4 +502,4 @@ function Update-PoshGitHub
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub,
-  Get-GitHubPullRequests
+  Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization
