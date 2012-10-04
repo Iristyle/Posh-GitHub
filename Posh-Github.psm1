@@ -1,3 +1,5 @@
+#Requires -Version 3.0
+
 function Get-CurrentDirectory
 {
   $thisName = $MyInvocation.MyCommand.Name
