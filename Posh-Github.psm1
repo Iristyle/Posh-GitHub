@@ -517,6 +517,130 @@ function Get-GitHubTeams
   }
 }
 
+function New-GitHubRepository
+{
+  [CmdletBinding(DefaultParameterSetName='user')]
+  param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]
+    $Name,
+
+    [Parameter(Mandatory = $false, ParameterSetName='org')]
+    [switch]
+    $ForOrganization,
+
+    [Parameter(Mandatory = $false, ParameterSetName='org')]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Description = '',
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidatePattern('^$|^http(s)?\:\/\/.*$')]
+    $Homepage = '',
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $Private,
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $NoIssues,
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $NoWiki,
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $NoDownloads,
+
+    [Parameter(Mandatory = $false, ParameterSetName='org')]
+    [int]
+    $TeamId,
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $AutoInit,
+
+    # https://github.com/github/gitignore
+    [Parameter(Mandatory = $false)]
+    [string]
+    $GitIgnoreTemplate,
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $NoClone
+  )
+
+  $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+
+  $postData = @{
+    name = $Name;
+    description = $Description;
+    homepage = $Homepage;
+    private = $Private.ToBool();
+    has_issues = !$NoIssues.ToBool();
+    has_wiki = !$NoWiki.ToBool();
+    has_downloads = !$NoDownloads.ToBool();
+    auto_init = $AutoInit.ToBool();
+    gitignore_template = $GitIgnoreTemplate;
+  }
+
+  if (![string]::IsNullOrEmpty($GitIgnoreTemplate) -and !$AutoInit.ToBool())
+  {
+    throw "To use a .gitignore, the -AutoInit switch must be specified"
+  }
+
+  switch ($PsCmdlet.ParameterSetName)
+  {
+    'org'
+    {
+      if ([string]::IsNullOrEmpty($Organization))
+        { throw "An organization must be supplied"}
+
+      if ($TeamId -eq $null)
+        { throw "An organization repository must have a specified team id"}
+
+      $postData.team_id = $TeamId;
+
+      $uri = "https://api.github.com/orgs/$Organization/repos$token"
+    }
+    'user'
+    {
+      $uri = "https://api.github.com/user/repos$token"
+    }
+  }
+
+  try
+  {
+    $params = @{
+      Uri = $uri;
+      Method = 'POST';
+      ContentType = 'application/json';
+      Body = (ConvertTo-Json $postData -Compress)
+    }
+
+    Write-Verbose $params.Body
+
+    $repo = Invoke-RestMethod @params
+    $global:GITHUB_API_OUTPUT = $repo
+    #Write-Verbose $global:GITHUB_API_OUTPUT
+
+    Write-Host "$($repo.full_name) Created at $($repo.clone_url)"
+
+    if (!($NoClone.ToBool()))
+      { git clone $repo.clone_url }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function Update-PoshGitHub
 {
   #$null if we can't find module (not sure how that happens, but just in case!)
@@ -545,4 +669,4 @@ function Update-PoshGitHub
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
-  Get-GitHubTeams
+  Get-GitHubTeams, New-GitHubRepository

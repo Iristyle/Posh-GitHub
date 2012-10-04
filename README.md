@@ -135,6 +135,43 @@ Get-GitHubRepositories
 Get-GitHubRepositories -Type owner -Sort pushed
 ```
 
+### New-GitHubRepository
+
+Creates a new GitHub repository and clones it locally by default.
+
+By default creates a public repository for the user configured by
+`GITHUB_USERNAME`, and clones it afterwards.
+
+```powershell
+New-GitHubRepository MyNewRepository
+```
+
+If you are a member of an organization and have set a `GITHUB_ORG` environment
+variable, this will create the repository under that organization.  Note that
+organization repositories require a TeamId
+
+```powershell
+New-GitHubRepository MyNewOrgRepo -ForOrganization -TeamId 1234
+```
+
+If you are a member of multiple organizations you may override the default
+configured organization
+
+```powershell
+New-GitHubRepository MyNewOrgRepo -Organization DifferentOrg -TeamId 1234
+```
+
+A fancier set of switches -- pretty self-explanatory.
+The complete [Gitignore list][gitignore] here is at your disposal.
+
+```powershell
+New-GitHubRepository RepoName -Description 'A New Repo' `
+  -Homepage 'https://www.foo.com' -Private -NoIssues -NoWiki -NoDownloads `
+  -AutoInit -GitIgnoreTemplate 'CSharp' -NoClone
+```
+
+[gitignore]: https://github.com/github/gitignore
+
 ### Get-GitHubIssues
 
 Will get a list of issue number / title for a given repo owner
