@@ -641,6 +641,83 @@ function New-GitHubRepository
   }
 }
 
+function New-GitHubFork
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]
+    $Owner,
+
+    [Parameter(Mandatory = $true, Position = 1)]
+    [string]
+    $Repository,
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $ForOrganization,
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization,
+
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $NoClone
+  )
+
+  if (!$NoClone -and (Test-Path $Repository))
+  {
+    throw "Local directory $Repository already exists - change your cwd!"
+  }
+
+  if ($ForOrganization -and [string]::IsNullOrEmpty($Organization))
+  {
+    if ([string]::IsNullOrEmpty($Env:GITHUB_ORG))
+    {
+      throw ("When using -ForOrganization, -Organization must be specified or" +
+      " GITHUB_ORG must be set in the environment")
+    }
+    $Organization = $Env:GITHUB_ORG
+  }
+
+  try
+  {
+    $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+    $params = @{
+      Uri = "https://api.github.com/repos/$Owner/$Repository/forks$token";
+      Method = 'POST';
+      ContentType = 'application/json';
+    }
+
+    if (![string]::IsNullOrEmpty($Organization))
+      { $params.Uri += "&org=$Organization" }
+
+    $fork = Invoke-RestMethod @params
+    $global:GITHUB_API_OUTPUT = $fork
+    #Write-Verbose $global:GITHUB_API_OUTPUT
+
+    Write-Host "$($fork.full_name) forked from $Owner/$Repository to ($($fork.clone_url))"
+
+    # forks are async, so clone the original repo, then tweak our remotes
+    if (!$NoClone)
+    {
+      $sourceRepo = "https://github.com/$Owner/$Repository.git"
+      git clone $sourceRepo
+      Push-Location $Repository
+      Write-Host "Resetting origin to $($fork.clone_url)"
+      git remote set-url origin $fork.clone_url
+      Write-Host "Adding origin as $sourceRepo"
+      git remote add upstream $sourceRepo
+      Pop-Location
+    }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function Update-PoshGitHub
 {
   #$null if we can't find module (not sure how that happens, but just in case!)
@@ -669,4 +746,4 @@ function Update-PoshGitHub
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
-  Get-GitHubTeams, New-GitHubRepository
+  Get-GitHubTeams, New-GitHubRepository, New-GitHubFork

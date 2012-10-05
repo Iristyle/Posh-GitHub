@@ -172,6 +172,42 @@ New-GitHubRepository RepoName -Description 'A New Repo' `
 
 [gitignore]: https://github.com/github/gitignore
 
+### New-GitHubFork
+
+Forks a repository, clones it locally, then properly adds a remote named
+`upstream` to point back to the parent repository.  Aborts if there is a
+directory in the current working directory that shares the name of the
+repository.
+
+Uses the environment variable `GITHUB_OAUTH_TOKEN` to properly fork to your
+account.  After forking, clones the original source, resets origin to the new
+url for your account `https://github.com/YOURUSERNAME/Posh-GitHub.git`,
+and sets the upstream remote to `https://github.com/Iristyle/Posh-GitHub.git`
+
+```powershell
+New-GitHubFork Iristyle 'Posh-GitHub'
+```
+
+Performs the same operation as above, instead forking to the default
+organization specified by the `GITHUB_ORG` environment variable.
+
+```powershell
+New-GitHubFork Iristyle 'Posh-GitHub' -ForOrganization
+```
+
+Performs the same operation as above, instead forking to a user specified
+organization specified by the `-Organization` switch.
+
+```powershell
+New-GitHubFork Iristyle 'Posh-GitHub' -Organization MySecondOrganization
+```
+
+Forks the repository, without calling `git clone` after the fork.
+
+```powershell
+New-GitHubFork -Owner Iristyle -Repository 'Posh-GitHub' -NoClone
+```
+
 ### Get-GitHubIssues
 
 Will get a list of issue number / title for a given repo owner
