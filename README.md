@@ -216,8 +216,18 @@ or can list issues against a specific repo and owner.
 Simply list issues for the current working directory repository.  Checks first
 for an `upstream` remote and falls back to `origin`
 
+If the current directory is not a repository, then lists all the issues assigned
+to you, assuming the `GITHUB_OAUTH_TOKEN` has been set properly.
+
 ```powershell
 Get-GitHubIssues
+```
+
+To get your issues regardless of whether or not the current directory is a Git
+repository.
+
+``powershell
+Get-GitHubIssues -ForUser
 ```
 
 Same as above, but finds up to the last 30 closed issues.

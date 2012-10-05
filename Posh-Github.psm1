@@ -162,6 +162,30 @@ function GetRepoIssues($Owner, $Repository, $State)
     % { Write-Host "Issue $($_.number): $($_.title)" }
 }
 
+function GetUserIssues($State)
+{
+  $uri = ("https://api.github.com/issues" +
+   "?state=$state&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+  #no way to set Accept header with Invoke-RestMethod
+  #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
+  #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
+
+  Write-Host "Requesting your issues"
+  $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
+  #Write-Verbose $global:GITHUB_API_OUTPUT
+
+  $global:GITHUB_API_OUTPUT |
+    % {
+      if ($matches -ne $null) { $matches.Clear() }
+      $repo = $_.url -match '^.*github.com\/repos\/(.*?)\/(.*?)/issues/.*$' |
+        % { "$($matches[1])/$($matches[2])" }
+
+      Write-Host "Issue $($_.number) for $($repo): $($_.title)"
+      Write-Host "`t$($_.html_url)"
+    }
+}
+
 function Get-GitHubIssues
 {
   [CmdletBinding(DefaultParameterSetName='repo')]
@@ -173,6 +197,10 @@ function Get-GitHubIssues
     [Parameter(Mandatory = $false, Position=1, ParameterSetName='repo')]
     [string]
     $Repository = $null,
+
+    [Parameter(Mandatory = $false, ParameterSetName='user')]
+    [switch]
+    $ForUser,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet('open', 'closed')]
@@ -203,7 +231,15 @@ function Get-GitHubIssues
 
           # with no parameters specified, fall back to user style
           if ([string]::IsNullOrEmpty($Owner))
-            { throw "Could not find valid repository to query for pull requests" }
+          {
+            if ([string]::IsNullOrEmpty($Env:GITHUB_OAUTH_TOKEN))
+            {
+              throw ("Could not find valid repository to query for issues" +
+                " and no GITHUB_OAUTH_TOKEN was found ")
+            }
+
+            return GetUserIssues $State.ToLower()
+          }
         }
         elseif ($missingOwner -or $missingRepo)
         {
@@ -211,6 +247,13 @@ function Get-GitHubIssues
         }
 
         GetRepoIssues $Owner $Repository $State.ToLower()
+      }
+      'user'
+      {
+        if ([string]::IsNullOrEmpty($Env:GITHUB_OAUTH_TOKEN))
+          { throw "Set GITHUB_OAUTH_TOKEN env variable "}
+
+        GetUserIssues $State.ToLower()
       }
     }
   }
