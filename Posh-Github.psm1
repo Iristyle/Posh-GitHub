@@ -424,14 +424,64 @@ function Get-GitHubRepositories
   }
 }
 
+function GetUserPullRequests($User, $State)
+{
+  $totalCount = 0
+  $uri = ("https://api.github.com/users/$User/repos" +
+    "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+  $global:GITHUB_API_OUTPUT = @{
+    RepoList = @();
+    Repos = @();
+  }
+
+  do
+  {
+    $response = Invoke-WebRequest -Uri $uri
+    $global:GITHUB_API_OUTPUT.RepoList += ($response.Content | ConvertFrom-Json)
+
+    if ($matches -ne $null) { $matches.Clear() }
+    $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
+      % { $matches[1] }
+  } while ($uri -ne $null)
+
+  #TODO: this blows up
+  #Write-Verbose $global:GITHUB_API_OUTPUT
+
+  $forks = $global:GITHUB_API_OUTPUT.RepoList | ? { $_.fork }
+  Write-Host "Found $($forks.Count) forked repos for $User"
+
+  $forks |
+    % {
+      $repo = Invoke-RestMethod -Uri $_.url
+
+      $uri = ("https://api.github.com/repos/$($repo.parent.full_name)/pulls" +
+        "?state=$State&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+      $pulls = Invoke-RestMethod -Uri $uri
+
+      $global:GITHUB_API_OUTPUT.Repos += @{ Repo = $repo; Pulls = $pulls }
+
+      $pulls |
+        ? { $_.user.login -eq $User } |
+        % {
+          $totalCount++
+          $updated = if ([string]::IsNullOrEmpty($_.updated_at)) { $_.created_at }
+            else { $_.updated_at }
+          $updated = [DateTime]::Parse($updated).ToString('g')
+          Write-Host "`n$($repo.name) pull $($_.number) - $($_.title) - $updated"
+          Write-Host "`t$($_.issue_url)"
+        }
+    }
+
+  Write-Host "`nFound $totalCount open pull requests for $User"
+}
+
 function Get-GitHubPullRequests
 {
-  [CmdletBinding()]
+  [CmdletBinding(DefaultParameterSetName='user')]
   param(
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, ParameterSetName='user')]
     [string]
-    [ValidateScript({ ![string]::IsNullOrEmpty($_) -or `
-      ![string]::IsNullOrEmpty($Env:GITHUB_USERNAME) })]
     $User = $Env:GITHUB_USERNAME,
 
     [Parameter(Mandatory = $false)]
@@ -442,54 +492,16 @@ function Get-GitHubPullRequests
 
   try
   {
-    $totalCount = 0
-    $uri = ("https://api.github.com/users/$User/repos" +
-      "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
-
-    $global:GITHUB_API_OUTPUT = @{
-      RepoList = @();
-      Repos = @();
+    switch ($PsCmdlet.ParameterSetName)
+    {
+      'user'
+      {
+        if ([string]::IsNullOrEmpty($User))
+          { throw "Supply the -User parameter or set GITHUB_USERNAME env variable "}
+        GetUserPullRequests $User $State
+      }
     }
 
-    do
-    {
-      $response = Invoke-WebRequest -Uri $uri
-      $global:GITHUB_API_OUTPUT.RepoList += ($response.Content | ConvertFrom-Json)
-
-      if ($matches -ne $null) { $matches.Clear() }
-      $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
-        % { $matches[1] }
-    } while ($uri -ne $null)
-
-    #TODO: this blows up
-    #Write-Verbose $global:GITHUB_API_OUTPUT
-
-    $forks = $global:GITHUB_API_OUTPUT.RepoList | ? { $_.fork }
-    Write-Host "Found $($forks.Count) forked repos for $User"
-
-    $forks |
-      % {
-        $repo = Invoke-RestMethod -Uri $_.url
-
-        $uri = ("https://api.github.com/repos/$($repo.parent.full_name)/pulls" +
-          "?state=$State&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
-        $pulls = Invoke-RestMethod -Uri $uri
-
-        $global:GITHUB_API_OUTPUT.Repos += @{ Repo = $repo; Pulls = $pulls }
-
-        $pulls |
-          ? { $_.user.login -eq $User } |
-          % {
-            $totalCount++
-            $updated = if ([string]::IsNullOrEmpty($_.updated_at)) { $_.created_at }
-              else { $_.updated_at }
-            $updated = [DateTime]::Parse($updated).ToString('g')
-            Write-Host "`n$($repo.name) pull $($_.number) - $($_.title) - $updated"
-            Write-Host "`t$($_.issue_url)"
-          }
-      }
-
-    Write-Host "`nFound $totalCount open pull requests for $User"
   }
   catch
   {
