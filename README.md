@@ -273,17 +273,43 @@ Note that GitHub generally requires that head be prefixed with `username:`
 
 ### Get-GitHubPullRequests
 
-Lists all open pull requests against your forks, assuming you have set the
-`GITHUB_USERNAME` environment variable
+List pull requests against the repository for the current working directory,
+or can list pull requests against all forks from a user.
+
+Inside of a Git repository, this will look first for a remote named `upstream`
+before falling back to `origin`.
+
+Inside of a non-Git directory, this will list pulls for all of your forks,
+assuming you have set the `GITHUB_USERNAME` environment variable
 
 ```powershell
 Get-GitHubPullRequests
 ```
 
-Lists all open public pull requests against the given users forks
+When inside of a Git directory, the repo lookup behavior may be overridden
+with the `-ForUser` switch, assuming `GITHUB_USERNAME` has been set
+
+```powershell
+Get-GitHubPullRequests -ForUser
+```
+
+Will list all open pull requests the 'Posh-GitHub' repository
+
+```powershell
+Get-GitHubPullRequests -Owner EastPoint -Repository 'Posh-GitHub'
+```
+
+Lists all open __public__ pull requests against the given users forks, overriding
+the `GITHUB_USERNAME` default user.
 
 ```powershell
 Get-GitHubPullRequests -User Iristyle
+```
+
+Will list all closed pull requests against the 'Posh-GitHub' repository
+
+```powershell
+Get-GitHubPullRequests -Owner EastPoint -Repository 'Posh-Github' -State closed
 ```
 
 ### Get-GitHubTeams

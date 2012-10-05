@@ -11,7 +11,8 @@ function GetRemotes
   $remotes = @{}
   #try to sniff out the repo based on 'upstream'
   if ($matches -ne $null) { $matches.Clear() }
-  $gitRemotes = git remote -v show
+  # 2 is stderr and 3 is an undefined output handle - >nul won't work
+  $gitRemotes = git remote -v show 2>3
 
   $pattern = '^(.*)?\t.*github.com\/(.*)\/(.*) \((fetch|push)\)'
   $gitRemotes |
@@ -30,6 +31,24 @@ function GetRemotes
     }
 
   return $remotes
+}
+
+# Get-GitDirectory and Get-LocalOrParentPath are Posh-Git helpers
+function Get-GitDirectory
+{
+  return Get-LocalOrParentPath .git
+}
+
+function Get-LocalOrParentPath($path)
+{
+  $checkIn = Get-Item .
+  while ($checkIn -ne $NULL)
+  {
+    $pathToTest = Join-Path $checkIn.fullname $path
+    if (Test-Path $pathToTest) { return $pathToTest }
+    else { $checkIn = $checkIn.parent }
+  }
+  return $null
 }
 
 function New-GitHubOAuthToken
@@ -465,24 +484,62 @@ function GetUserPullRequests($User, $State)
         ? { $_.user.login -eq $User } |
         % {
           $totalCount++
-          $updated = if ([string]::IsNullOrEmpty($_.updated_at)) { $_.created_at }
-            else { $_.updated_at }
-          $updated = [DateTime]::Parse($updated).ToString('g')
-          Write-Host "`n$($repo.name) pull $($_.number) - $($_.title) - $updated"
+          $created = [DateTime]::Parse($_.created_at)
+          $updated = [DateTime]::Parse($_.updated_at)
+          $open = ([DateTime]::Now - $created).ToString('%d')
+          Write-Host "`n$($repo.name) pull $($_.number) - $($_.title)"
+          Write-Host "`tOpen for $open day(s) / Last Updated - $($updated.ToString('g'))"
           Write-Host "`t$($_.issue_url)"
         }
     }
 
-  Write-Host "`nFound $totalCount open pull requests for $User"
+  Write-Host "`nFound $totalCount $State pull requests for $User"
+}
+
+function GetRepoPullRequests($Owner, $Repository, $State)
+{
+  $totalCount = 0
+  Write-Host "Getting $State pull requests for $Owner/$Repository"
+
+  $uri = ("https://api.github.com/repos/$Owner/$Repository/pulls" +
+    "?access_token=${Env:\GITHUB_OAUTH_TOKEN}&state=$State");
+
+  $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
+  #Write-Verbose $global:GITHUB_API_OUTPUT
+
+  $global:GITHUB_API_OUTPUT |
+    % {
+      $totalCount++
+      $created = [DateTime]::Parse($_.created_at)
+      $updated = [DateTime]::Parse($_.updated_at)
+      $open = ([DateTime]::Now - $created).ToString('%d')
+      Write-Host "`n$($_.number) from $($_.user.login) - $($_.title) "
+      Write-Host "`tOpen for $open day(s) / Last Updated - $($updated.ToString('g'))"
+      Write-Host "`t$($_.issue_url)"
+    }
+
+  Write-Host "`nFound $totalCount $State pull requests for $Owner/$Repository"
 }
 
 function Get-GitHubPullRequests
 {
-  [CmdletBinding(DefaultParameterSetName='user')]
+  [CmdletBinding(DefaultParameterSetName='repo')]
   param(
+    [Parameter(Mandatory = $false, ParameterSetName='repo')]
+    [string]
+    $Owner = $null,
+
+    [Parameter(Mandatory = $false, ParameterSetName='repo')]
+    [string]
+    $Repository = $null,
+
     [Parameter(Mandatory = $false, ParameterSetName='user')]
     [string]
     $User = $Env:GITHUB_USERNAME,
+
+    [Parameter(Mandatory = $false, ParameterSetName='user')]
+    [switch]
+    $ForUser,
 
     [Parameter(Mandatory = $false)]
     [string]
@@ -494,14 +551,49 @@ function Get-GitHubPullRequests
   {
     switch ($PsCmdlet.ParameterSetName)
     {
+      'repo'
+      {
+        if ([string]::IsNullOrEmpty($Owner) -and [string]::IsNullOrEmpty($Repository))
+        {
+          $remotes = GetRemotes
+          #first remote in order here wins!
+          'upstream', 'origin' |
+            % {
+              if ([string]::IsNullOrEmpty($Owner) -and $remotes.$_)
+              {
+                $Owner = $remotes.$_.owner
+                $Repository = $remotes.$_.repository
+                Write-Host "Found $_ remote with owner $Owner"
+              }
+            }
+
+          # with no parameters specified, fall back to user style
+          if ([string]::IsNullOrEmpty($Owner))
+          {
+            if ([string]::IsNullOrEmpty($User))
+            {
+              throw ("Could not find valid repository to query for pull requests" +
+                " and no -User parameter or GITHUB_USERNAME was found ")
+            }
+
+            return GetUserPullRequests $User $State.ToLower()
+          }
+        }
+        elseif ([string]::IsNullOrEmpty($Owner) -or [string]::IsNullOrEmpty($Repository))
+        {
+          throw "An Owner and Repository must be specified together"
+        }
+
+        GetRepoPullRequests $Owner $Repository $State.ToLower()
+      }
       'user'
       {
         if ([string]::IsNullOrEmpty($User))
           { throw "Supply the -User parameter or set GITHUB_USERNAME env variable "}
-        GetUserPullRequests $User $State
+
+        GetUserPullRequests $User $State.ToLower()
       }
     }
-
   }
   catch
   {
