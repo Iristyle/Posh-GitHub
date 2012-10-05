@@ -210,7 +210,21 @@ New-GitHubFork -Owner Iristyle -Repository 'Posh-GitHub' -NoClone
 
 ### Get-GitHubIssues
 
-Will get a list of issue number / title for a given repo owner
+List issues against the repository for the current working directory,
+or can list issues against a specific repo and owner.
+
+Simply list issues for the current working directory repository.  Checks first
+for an `upstream` remote and falls back to `origin`
+
+```powershell
+Get-GitHubIssues
+```
+
+Same as above, but finds up to the last 30 closed issues.
+
+```powershell
+Get-GitHubIssues -State closed
+```
 
 Must be ordered by Owner, Repo if not using switches on params
 

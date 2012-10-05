@@ -145,38 +145,74 @@ function Get-GitHubOAuthTokens
   }
 }
 
+function GetRepoIssues($Owner, $Repository, $State)
+{
+  $uri = ("https://api.github.com/repos/$Owner/$Repository/issues" +
+   "?state=$state&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+  #no way to set Accept header with Invoke-RestMethod
+  #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
+  #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
+
+  Write-Host "Requesting issues for $Owner/$Repository"
+  $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
+  #Write-Verbose $global:GITHUB_API_OUTPUT
+
+  $global:GITHUB_API_OUTPUT |
+    % { Write-Host "Issue $($_.number): $($_.title)" }
+}
+
 function Get-GitHubIssues
 {
-  [CmdletBinding()]
+  [CmdletBinding(DefaultParameterSetName='repo')]
   param(
-   [Parameter(Mandatory = $true)]
-   [string]
-   $Owner,
+    [Parameter(Mandatory = $false, Position=0,  ParameterSetName='repo')]
+    [string]
+    $Owner = $null,
 
-   [Parameter(Mandatory = $true)]
-   [string]
-   $Repository,
+    [Parameter(Mandatory = $false, Position=1, ParameterSetName='repo')]
+    [string]
+    $Repository = $null,
 
-   [Parameter(Mandatory = $false)]
-   [ValidateSet('open', 'closed')]
-   $State
- )
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('open', 'closed')]
+    $State = 'open'
+  )
 
   try
   {
-    $uri = ("https://api.github.com/repos/$Owner/$Repository/issues" +
-     "?state=$state&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+    switch ($PsCmdlet.ParameterSetName)
+    {
+      'repo'
+      {
+        $missingOwner = [string]::IsNullOrEmpty($Owner)
+        $missingRepo = [string]::IsNullOrEmpty($Repository)
+        if ($missingOwner -and $missingRepo)
+        {
+          $remotes = GetRemotes
+          #first remote in order here wins!
+          'upstream', 'origin' |
+            % {
+              if ([string]::IsNullOrEmpty($Owner) -and $remotes.$_)
+              {
+                $Owner = $remotes.$_.owner
+                $Repository = $remotes.$_.repository
+                Write-Host "Found $_ remote with owner $Owner"
+              }
+            }
 
-    #no way to set Accept header with Invoke-RestMethod
-    #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
-    #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
+          # with no parameters specified, fall back to user style
+          if ([string]::IsNullOrEmpty($Owner))
+            { throw "Could not find valid repository to query for pull requests" }
+        }
+        elseif ($missingOwner -or $missingRepo)
+        {
+          throw "An Owner and Repository must be specified together"
+        }
 
-    Write-Host "Requesting issues for $Owner/$Repository"
-    $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
-    Write-Verbose $global:GITHUB_API_OUTPUT
-
-    $global:GITHUB_API_OUTPUT |
-      % { Write-Host "Issue $($_.Number): $($_.Title)" }
+        GetRepoIssues $Owner $Repository $State.ToLower()
+      }
+    }
   }
   catch
   {
