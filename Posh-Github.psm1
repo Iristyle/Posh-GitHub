@@ -6,6 +6,32 @@ function Get-CurrentDirectory
   [IO.Path]::GetDirectoryName((Get-Content function:$thisName).File)
 }
 
+function GetRemotes
+{
+  $remotes = @{}
+  #try to sniff out the repo based on 'upstream'
+  if ($matches -ne $null) { $matches.Clear() }
+  $gitRemotes = git remote -v show
+
+  $pattern = '^(.*)?\t.*github.com\/(.*)\/(.*) \((fetch|push)\)'
+  $gitRemotes |
+    Select-String -Pattern $pattern -AllMatches |
+    % {
+      $repo = @{
+        Name = $_.Matches.Groups[1].Value;
+        Owner = $_.Matches.Groups[2].Value;
+        Repository = ($_.Matches.Groups[3].Value -replace '\.git$', '');
+      }
+
+      if (!$remotes.ContainsKey($repo.Name))
+      {
+        $remotes."$($repo.Name)" = $repo;
+      }
+    }
+
+  return $remotes
+}
+
 function New-GitHubOAuthToken
 {
   [CmdletBinding()]
@@ -177,18 +203,14 @@ function New-GitHubPullRequest
   if ([string]::IsNullOrEmpty($Owner) -and [string]::IsNullOrEmpty($Repository))
   {
     #try to sniff out the repo based on 'upstream'
-    if ($matches -ne $null) { $matches.Clear() }
-    git remote -v show |
-      ? { $_ -match 'upstream\t.*github.com\/(.*)\/(.*) \((fetch|push)\)' } |
-      Out-Null
-
-    if ($matches.Count -eq 0)
+    $remotes = GetRemotes
+    if (!($remotes.upstream))
     {
-      throw "No upstream remote define, so couldn't determine where to send pull"
+      throw "No remote named 'upstream' defined, so cannot determine where to send pull"
     }
 
-    $Owner = $matches[1]
-    $Repository = $matches[2] -replace '\.git$', ''
+    $Owner = $remotes.upstream.owner
+    $Repository = $remotes.upstream.repository
   }
   elseif ([string]::IsNullOrEmpty($Owner) -or [string]::IsNullOrEmpty($Repository))
   {
