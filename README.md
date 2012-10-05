@@ -261,6 +261,14 @@ Closed issues
 Get-GitHubIssues -Owner EastPoint -Repository Burden -State closed
 ```
 
+Supplying all parameters for a repository based issue search
+
+```powershell
+Get-GitHubIssues -Owner EastPoint -Repository Burden -State closed `
+  -Milestone '*' -Assignee 'none' -Creator 'Iristyle' -Mentioned 'Iristyle'
+  -Labels 'ui','sql' -Sort updated -Direction desc -Since 8/31/2012
+```
+
 ### New-GitHubPullRequest
 
 Initiates a new pull request to the `upstream` repo.

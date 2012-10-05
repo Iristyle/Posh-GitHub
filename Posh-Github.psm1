@@ -145,10 +145,28 @@ function Get-GitHubOAuthTokens
   }
 }
 
-function GetRepoIssues($Owner, $Repository, $State)
+function GetRepoIssues($Owner, $Repository, $Milestone, $State, $Assignee,
+  $Creator, $Mentioned, $Labels, $Sort, $Direction, $Since)
 {
+  #TODO: follow link headers
+  if ($Since)
+  {
+    $culture = [Globalization.CultureInfo]::InvariantCulture
+    $Since = "&since=" + $Since.ToString("s", $culture)
+  }
+  if ($Labels -and ($Labels.Count -gt 0))
+  {
+    $labelsParam = "&labels=" + ($Labels -join ',')
+  }
+  if ($Creator) { $Creator = "&creator=$Creator" }
+  if ($Mentioned) { $Mentioned = "&mentioned=$Mentioned" }
+  if ($Milestone) { $Milestone = "&milestone=$Milestone" }
+  if ($Assignee) { $Assignee = "&assignee=$Assignee" }
+
   $uri = ("https://api.github.com/repos/$Owner/$Repository/issues" +
-   "?state=$state&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+   "?state=$state$Milestone$Assignee$Creator$Mentioned" +
+   "$labelsParam&sort=$Sort&direction=$Direction$Since" +
+   "&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
   #no way to set Accept header with Invoke-RestMethod
   #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
@@ -223,6 +241,22 @@ function Get-GitHubIssues
     [ValidateSet('assigned', 'created', 'mentioned', 'subscribed')]
     $Filter = 'assigned',
 
+    [Parameter(Mandatory = $false, ParameterSetName='repo')]
+    [ValidatePattern('^\*$|^none$|^\d+$')]
+    $Milestone,
+
+    [Parameter(Mandatory = $false, ParameterSetName='repo')]
+    [ValidatePattern('^\*$|^none$|^.+$')]
+    $Assignee,
+
+    [Parameter(Mandatory = $false, ParameterSetName='repo')]
+    [string]
+    $Creator,
+
+    [Parameter(Mandatory = $false, ParameterSetName='repo')]
+    [string]
+    $Mentioned,
+
     [Parameter(Mandatory = $false)]
     [string[]]
     $Labels = @(),
@@ -281,7 +315,11 @@ function Get-GitHubIssues
           throw "An Owner and Repository must be specified together"
         }
 
-        GetRepoIssues $Owner $Repository $State.ToLower()
+        # accept null or lower case
+        if ($Milestone) { $Milestone = $Milestone.ToLower() }
+        GetRepoIssues $Owner $Repository $Milestone $State.ToLower() `
+          $Assignee $Creator $Mentioned $Labels $Sort.ToLower() `
+          $Direction.ToLower() $PsBoundParameters.Since
       }
       'user'
       {
