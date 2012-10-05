@@ -162,10 +162,23 @@ function GetRepoIssues($Owner, $Repository, $State)
     % { Write-Host "Issue $($_.number): $($_.title)" }
 }
 
-function GetUserIssues($State)
+function GetUserIssues($Filter, $State, $Labels, $Sort, $Direction, $Since)
 {
+  #TODO: follow link headers
+  $sinceParam, $labelsParam = '', ''
+  if ($Since)
+  {
+    $culture = [Globalization.CultureInfo]::InvariantCulture
+    $sinceParam = "&since=" + $Since.ToString("s", $culture)
+  }
+  if ($Labels -and ($Labels.Count -gt 0))
+  {
+    $labelsParam = "&labels=" + ($Labels -join ',')
+  }
+
   $uri = ("https://api.github.com/issues" +
-   "?state=$state&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+    "?filter=$filter&state=$state$labelsParam&sort=$Sort" +
+    "&direction=$Direction$sinceParam&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
   #no way to set Accept header with Invoke-RestMethod
   #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
@@ -204,7 +217,28 @@ function Get-GitHubIssues
 
     [Parameter(Mandatory = $false)]
     [ValidateSet('open', 'closed')]
-    $State = 'open'
+    $State = 'open',
+
+    [Parameter(Mandatory = $false, ParameterSetName='user')]
+    [ValidateSet('assigned', 'created', 'mentioned', 'subscribed')]
+    $Filter = 'assigned',
+
+    [Parameter(Mandatory = $false)]
+    [string[]]
+    $Labels = @(),
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('created', 'updated', 'comments')]
+    $Sort = 'created',
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('asc', 'desc')]
+    $Direction = 'desc',
+
+    [Parameter(Mandatory = $false)]
+    [DateTime]
+    #Optional string of a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ
+    $Since
   )
 
   try
@@ -238,7 +272,8 @@ function Get-GitHubIssues
                 " and no GITHUB_OAUTH_TOKEN was found ")
             }
 
-            return GetUserIssues $State.ToLower()
+            return GetUserIssues $Filter.ToLower() $State.ToLower() $Labels `
+              $Sort.ToLower() $Direction.ToLower() $PsBoundParameters.Since
           }
         }
         elseif ($missingOwner -or $missingRepo)
@@ -253,7 +288,8 @@ function Get-GitHubIssues
         if ([string]::IsNullOrEmpty($Env:GITHUB_OAUTH_TOKEN))
           { throw "Set GITHUB_OAUTH_TOKEN env variable "}
 
-        GetUserIssues $State.ToLower()
+        GetUserIssues $Filter.ToLower() $State.ToLower() $Labels `
+          $Sort.ToLower() $Direction.ToLower() $PsBoundParameters.Since
       }
     }
   }

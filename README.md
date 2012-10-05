@@ -236,6 +236,13 @@ Same as above, but finds up to the last 30 closed issues.
 Get-GitHubIssues -State closed
 ```
 
+All parameters possible when searching for user issues
+
+``powershell
+Get-GitHubIssues -ForUser -State open -Filter created -Sort comments `
+  -Direction asc -Labels 'ui','sql' -Since 8/31/2012
+```
+
 Must be ordered by Owner, Repo if not using switches on params
 
 ```powershell
