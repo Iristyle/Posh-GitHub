@@ -11,8 +11,7 @@ function GetRemotes
   $remotes = @{}
   #try to sniff out the repo based on 'upstream'
   if ($matches -ne $null) { $matches.Clear() }
-  # 2 is stderr and 3 is an undefined output handle - >nul won't work
-  $gitRemotes = git remote -v show 2>3
+  $gitRemotes = git remote -v show 2> $null
 
   $pattern = '^(.*)?\t.*github.com\/(.*)\/(.*) \((fetch|push)\)'
   $gitRemotes |
