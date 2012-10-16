@@ -400,6 +400,15 @@ function New-GitHubPullRequest
 
     $Head = "$($localUser):$($branchName)"
   }
+
+  #make sure this branch has been pushed
+  # TODO: this won't work with a SHA1 or detached HEAD I don't think
+  # so don't execute under those circumstances
+  $branchName = $Head -split ':' | Select -Last 1
+  $pushed = git branch -r --contains $branchName |
+    ? { $_ -match "origin/$branchName" }
+  if (!$pushed) { git push -u origin $branchName }
+
   # TODO: find a way to determine if the specified HEAD is valid??
 
   $postData = @{ head = $Head; base = $Base }
