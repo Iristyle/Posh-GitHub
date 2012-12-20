@@ -226,7 +226,7 @@ Get-GitHubIssues
 To get your issues regardless of whether or not the current directory is a Git
 repository.
 
-``powershell
+```powershell
 Get-GitHubIssues -ForUser
 ```
 
@@ -238,7 +238,7 @@ Get-GitHubIssues -State closed
 
 All parameters possible when searching for user issues
 
-``powershell
+```powershell
 Get-GitHubIssues -ForUser -State open -Filter created -Sort comments `
   -Direction asc -Labels 'ui','sql' -Since 8/31/2012
 ```
