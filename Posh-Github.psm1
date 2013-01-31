@@ -521,7 +521,7 @@ function Set-GitHubOrganization
   )
 
   [Environment]::SetEnvironmentVariable('GITHUB_ORG', $Organization, 'User')
-  $Env:GITHUB_USERNAME = $Organization
+  $Env:GITHUB_ORG = $Organization
 }
 
 function Get-GitHubRepositories
