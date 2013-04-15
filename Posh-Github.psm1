@@ -38,6 +38,11 @@ function Get-GitDirectory
   return Get-LocalOrParentPath .git
 }
 
+function Test-GitDirectory
+{
+  return (Get-GitDirectory) -ne $null
+}
+
 function Get-LocalOrParentPath($path)
 {
   $checkIn = Get-Item .
@@ -1030,7 +1035,57 @@ function Update-PoshGitHub
   Import-Module (Join-Path $installedPath 'Posh-GitHub.psm1')
 }
 
+function CountGitBranches
+{
+  git branch |
+    Measure-Object |
+    Select -ExpandProperty Count
+}
+
+function Clear-GitMergedBranches
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [switch]
+    $Remote
+  )
+
+  try
+  {
+    if (!(Test-GitDirectory))
+    {
+      Write-Warning 'Current directory is not a Git directory'
+      return
+    }
+
+    if ($Remote)
+    {
+      # local branches that don't exist in remotes
+      git remote |
+        % { git remote prune $_.Trim() }
+    }
+    else
+    {
+      $existing = CountGitBranches
+
+      # local branches that have been merged
+      git branch --no-color --merged |
+        ? {$_ -notmatch '^\*' } |
+        % { git branch -d $_.Trim() }
+
+      $remaining = CountGitBranches
+      Write-Host "$($existing-$remaining) branches trimmed, $remaining branches total"
+    }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
-  Get-GitHubTeams, New-GitHubRepository, New-GitHubFork
+  Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
+  Clear-GitMergedBranches

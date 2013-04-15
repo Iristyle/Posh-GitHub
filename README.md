@@ -381,6 +381,27 @@ Will list the public events for another user
 Get-GitHubEvents -User Iristyle
 ```
 
+## Additional Git helper commands
+
+These commands do not use GitHub service, but are common enough for inclusion.
+
+### Clear-GitMergedBranches
+
+Will remove any local branch cruft from branches that have been merged into
+the master branch.
+
+```powershell
+Clear-GitMergedBranches
+```
+
+When pull requests have been merged, it's typical to delete the branch after
+accepting.  Remotes may no longer have branch names for things that have been
+merged.  This command removes remote branch names that no longer exist.
+
+```powershell
+Clear-GitMergedBranches -Remote
+```
+
 ## Roadmap
 
 None really.. just waiting to see what I might need.
