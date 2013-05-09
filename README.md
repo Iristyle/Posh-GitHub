@@ -1,3 +1,4 @@
+![PowerShell Logo](powershell_logo.png)
 # Posh-GitHub
 
 Powershell cmdlets that expose the GitHub API
