@@ -1,7 +1,8 @@
-![PowerShell Logo](powershell_logo.png)
+![PowerShell Logo](powershell_logo.png) ![GitHub Mark](GitHub-Mark.png)
+
 # Posh-GitHub
 
-Powershell cmdlets that expose the GitHub API
+Unofficial Powershell cmdlets that expose the GitHub API
 
 ## Early Code
 
