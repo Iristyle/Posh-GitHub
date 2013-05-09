@@ -23,48 +23,25 @@ may be bugs or things I haven't thought of -- please report if that's the case!
 
 ## Installation
 
-### Manual for Now
+### Chocolatey
 
-Git clone this to your user modules directory
-
-```powershell
-#Find appropriate module directory for user
-$modulePath = $Env:PSModulePath -split ';' |
-  ? { $_.StartsWith($HOME) } |
-  Select -First 1
-$poshGitHub = Join-Path $modulePath 'posh-github'
-
-git clone https://github.com/Iristyle/Posh-GitHub $poshGitHub
-
-#add the call to Import-Module to user profile
-'Import-Module Posh-Github' |
-  Out-File -FilePath $PROFILE -Append -Encoding UTF8
-```
-
-#### Updating
+Once Chocolatey has been installed, simply use the `cinst` command.
 
 ```powershell
-Update-PoshGitHub
+cinst posh-github
 ```
 
-This is a real simple mechanism for now -- it finds where the module is
-installed, it does a `git pull` to refresh the code, unloads the module and
-then reloads it.
+Chocolatey installation will import the module into your PowerShell profile.
 
-In the future, this will be handled by a package manager, but for now it works.
+## Updating
 
-Note that it uses the path of the currently loaded Posh-GitHub module to
-determine which physical Powershell module to update.  As long as the currently
-loaded module is the one installed to your profile, this will work fine.
+### Chocolatey
 
-### Automatic via PsGet
+After installing with Chocolatey, simply use the `cup` command.
 
-It seems like it would make sense to distribute this through [PsGet][PsGet] or
-[Chocolatey][Chocolatey].
-First things first though ;0
-
-[PsGet]: http://psget.net/
-[Chocolatey]: http://www.chocolatey.org
+```powershell
+cup posh-github
+```
 
 ## Supported Commands
 

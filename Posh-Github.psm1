@@ -1010,31 +1010,6 @@ function New-GitHubFork
   }
 }
 
-function Update-PoshGitHub
-{
-  #$null if we can't find module (not sure how that happens, but just in case!)
-  $installedPath = Get-Module Posh-GitHub |
-    Select -ExpandProperty Path |
-    Split-Path
-
-  Push-Location $installedPath
-
-  #DANGER - be safe and abort as git reset --hard could do damage in wrong spot
-  if (($installedPath -eq $null) -or ((Get-Location).Path -ne $installedPath))
-  {
-    Pop-Location
-    throw "Could not find Posh-GitHub module / reset path - Update aborted!"
-    return
-  }
-
-  Write-Host "Found Posh-GitHub module at $installedPath"
-  git reset --hard HEAD | Out-Null
-  git pull | Write-Host
-  Pop-Location
-  Remove-Module Posh-GitHub
-  Import-Module (Join-Path $installedPath 'Posh-GitHub.psm1')
-}
-
 function CountGitBranches
 {
   git branch |
@@ -1085,7 +1060,7 @@ function Clear-GitMergedBranches
 }
 
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
-  Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories, Update-PoshGitHub,
+  Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
   Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
   Clear-GitMergedBranches
