@@ -531,13 +531,19 @@ function Set-GitHubOrganization
 
 function Get-GitHubRepositories
 {
-  [CmdletBinding()]
+  [CmdletBinding(DefaultParameterSetName='user')]
   param(
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, ParameterSetName='user')]
     [string]
-    [ValidateScript({ ![string]::IsNullOrEmpty($_) -or `
-      ![string]::IsNullOrEmpty($Env:GITHUB_USERNAME) })]
     $User = $Env:GITHUB_USERNAME,
+
+    [Parameter(Mandatory = $false, ParameterSetName='org')]
+    [switch]
+    $ForOrganization,
+
+    [Parameter(Mandatory = $false, ParameterSetName='org')]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
 
     [Parameter(Mandatory = $false)]
     [string]
@@ -558,12 +564,30 @@ function Get-GitHubRepositories
 
   try
   {
+    switch ($PsCmdlet.ParameterSetName)
+    {
+      'org'
+      {
+        if ([string]::IsNullOrEmpty($Organization))
+          { throw "An organization must be supplied"}
+
+        $uri = "https://api.github.com/orgs/$Organization/repos"
+      }
+      'user'
+      {
+        if ([string]::IsNullOrEmpty($User))
+         { throw "A user must be specified since the default user is not configured" }
+
+        $uri = "https://api.github.com/users/$User/repos"
+      }
+    }
+
     if ($Direction -eq $null)
     {
       $Direction = if ($Sort -eq 'full_name') { 'asc' } else { 'desc' }
     }
 
-    $uri = ("https://api.github.com/users/$User/repos?type=$Type&sort=$Sort" +
+    $uri += ("?type=$Type&sort=$Sort" +
       "&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
     $global:GITHUB_API_OUTPUT = @()
