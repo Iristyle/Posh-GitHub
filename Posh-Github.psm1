@@ -529,6 +529,35 @@ function Set-GitHubOrganization
   $Env:GITHUB_ORG = $Organization
 }
 
+function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction)
+{
+  switch ($SearchType)
+  {
+    'org' { $uri = "https://api.github.com/orgs/$Name/repos" }
+    'user' { $uri = "https://api.github.com/users/$Name/repos" }
+  }
+
+  $uri += ("?type=$Type&sort=$Sort" +
+    "&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+  $global:GITHUB_API_OUTPUT = @()
+
+  do
+  {
+    $response = Invoke-WebRequest -Uri $uri
+    $global:GITHUB_API_OUTPUT += ($response.Content | ConvertFrom-Json)
+
+    if ($matches -ne $null) { $matches.Clear() }
+    $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
+      % { $matches[1] }
+  } while ($uri -ne $null)
+
+  #TODO: this blows up
+  #Write-Verbose $global:GITHUB_API_OUTPUT
+
+  Write-Host "Found $($global:GITHUB_API_OUTPUT.Count) repos for $Name"
+}
+
 function Get-GitHubRepositories
 {
   [CmdletBinding(DefaultParameterSetName='user')]
@@ -571,14 +600,14 @@ function Get-GitHubRepositories
         if ([string]::IsNullOrEmpty($Organization))
           { throw "An organization must be supplied"}
 
-        $uri = "https://api.github.com/orgs/$Organization/repos"
+        $name = $Organization
       }
       'user'
       {
         if ([string]::IsNullOrEmpty($User))
          { throw "A user must be specified since the default user is not configured" }
 
-        $uri = "https://api.github.com/users/$User/repos"
+        $name = $User
       }
     }
 
@@ -587,26 +616,7 @@ function Get-GitHubRepositories
       $Direction = if ($Sort -eq 'full_name') { 'asc' } else { 'desc' }
     }
 
-    $uri += ("?type=$Type&sort=$Sort" +
-      "&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
-
-    $global:GITHUB_API_OUTPUT = @()
-
-    do
-    {
-      $response = Invoke-WebRequest -Uri $uri
-      $global:GITHUB_API_OUTPUT += ($response.Content | ConvertFrom-Json)
-
-      if ($matches -ne $null) { $matches.Clear() }
-      $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
-        % { $matches[1] }
-    } while ($uri -ne $null)
-
-
-    #TODO: this blows up
-    #Write-Verbose $global:GITHUB_API_OUTPUT
-
-    Write-Host "Found $($global:GITHUB_API_OUTPUT.Count) repos for $User"
+    GetGitHubRepos $PsCmdlet.ParameterSetName $name $Type $Sort $Direction
 
     $global:GITHUB_API_OUTPUT |
       % {
