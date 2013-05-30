@@ -643,6 +643,83 @@ function Get-GitHubRepositories
   }
 }
 
+function Backup-GitHubRepositories
+{
+  [CmdletBinding(DefaultParameterSetName='user')]
+  param(
+    [Parameter(Mandatory = $false, ParameterSetName='user')]
+    [string]
+    $User = $Env:GITHUB_USERNAME,
+
+    [Parameter(Mandatory = $false, ParameterSetName='org')]
+    [switch]
+    $ForOrganization,
+
+    [Parameter(Mandatory = $false, ParameterSetName='org')]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    [ValidateSet('all', 'owner', 'member')]
+    $Type = 'all'
+  )
+
+  try
+  {
+    switch ($PsCmdlet.ParameterSetName)
+    {
+      'org'
+      {
+        if ([string]::IsNullOrEmpty($Organization))
+          { throw "An organization must be supplied"}
+
+        $name = $Organization
+      }
+      'user'
+      {
+        if ([string]::IsNullOrEmpty($User))
+         { throw "A user must be specified since the default user is not configured" }
+
+        $name = $User
+      }
+    }
+
+    GetGitHubRepos $PsCmdlet.ParameterSetName $name $Type 'full_name' $null
+    $allRepos = $global:GITHUB_API_OUTPUT
+
+    $allRepos |
+      % {
+        $owner, $repo = $_.full_name -split '/'
+        git clone "$($_.clone_url)"
+        Push-Location $repo
+
+        GetRepoPullRequests $owner $repo 'open'
+        $pulls = $global:GITHUB_API_OUTPUT
+        $seen = @()
+        $pulls |
+          ? { ($_.user -ne $null) -and ($_.user.login -ne $owner) } |
+          % {
+            # TODO: find issues.. clone them locally
+            # TODO: find wiki.. clone it locally
+            # $_.fork is set if its a fork
+            if ($seen -notcontains $_.user.login)
+            {
+              $name = $_.user.login
+              git remote add $name "$($_.head.repo.clone_url)"
+              git fetch $name
+              $seen += $_.user.login
+            }
+          }
+        Pop-Location
+      }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function GetUserPullRequests($User, $State)
 {
   $totalCount = 0
@@ -1097,4 +1174,4 @@ Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
   Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
-  Clear-GitMergedBranches
+  Clear-GitMergedBranches, Backup-GitHubRepositories
