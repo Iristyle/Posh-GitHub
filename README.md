@@ -360,6 +360,28 @@ Will list the public events for another user
 Get-GitHubEvents -User Iristyle
 ```
 
+### Backup-GitHubRepositories
+
+This will clone every repository for the specified user or organization, and will
+additionally clone each fork, as determined by open pull requests.  Does not backup
+issues or wiki (yet).
+
+The default parameterless version will use the `GITHUB_USERNAME` environment variable
+to get the list of repos where the user is an owner or a member, and will backup each
+one locally to disk
+
+```powershell
+Backup-GitHubRepositories
+```
+
+This will find all the public repos for the github organization, and will clone each one
+locally
+
+```powershell
+Backup-GitHubRepositories -Organization github
+```
+
+
 ## Additional Git helper commands
 
 These commands do not use GitHub service, but are common enough for inclusion.
