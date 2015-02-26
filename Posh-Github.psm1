@@ -13,7 +13,7 @@ function GetRemotes
   if ($matches -ne $null) { $matches.Clear() }
   $gitRemotes = git remote -v show 2> $null
 
-  $pattern = '^(.*)?\t.*github.com\/(.*)\/(.*) \((fetch|push)\)'
+  $pattern = '^(.*)?\t.*github.com[:\/](.*)\/(.*) \((fetch|push)\)'
   $gitRemotes |
     Select-String -Pattern $pattern -AllMatches |
     % {
@@ -107,7 +107,7 @@ function New-GitHubOAuthToken
   }
   catch
   {
-    Write-Error "An unexpected error occurred (bad user/password?) $($Error[0])"
+    Write-Error "An unexpected error occurred (bad user/password?) $_"
   }
 }
 
@@ -145,7 +145,7 @@ function Get-GitHubOAuthTokens
   }
   catch
   {
-    Write-Error "An unexpected error occurred (bad user/password?) $($Error[0])"
+    Write-Error "An unexpected error occurred (bad user/password?) $_"
   }
 }
 
@@ -213,7 +213,7 @@ function GetUserIssues($Filter, $State, $Labels, $Sort, $Direction, $Since)
   $global:GITHUB_API_OUTPUT |
     % {
       if ($matches -ne $null) { $matches.Clear() }
-      $repo = $_.url -match '^.*github.com\/repos\/(.*?)\/(.*?)/issues/.*$' |
+      $repo = $_.url -match '^.*github.com[:\/]repos\/(.*?)\/(.*?)/issues/.*$' |
         % { "$($matches[1])/$($matches[2])" }
 
       Write-Host "Issue $($_.number) for $($repo): $($_.title)"
@@ -337,7 +337,7 @@ function Get-GitHubIssues
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -371,7 +371,7 @@ function New-GitHubPullRequest
 
     [Parameter(Mandatory = $false)]
     [string]
-    [ValidatePattern('^$|^\w+?:[a-zA-Z0-9\-\.]{1,40}$')]
+    [ValidatePattern('^$|^[\w-]+?:[a-zA-Z0-9\-\._]{1,40}$')]
     [AllowNull()]
     $Head = ''
   )
@@ -396,7 +396,7 @@ function New-GitHubPullRequest
   if ([string]::IsNullOrEmpty($Head))
   {
     $localUser = git remote -v show |
-      ? { $_ -match 'origin\t.*github.com\/(.*)\/.* \((fetch|push)\)' } |
+      ? { $_ -match 'origin\t.*github.com[:\/](.*)\/.* \((fetch|push)\)' } |
       % { $matches[1] } |
       Select -First 1
 
@@ -448,7 +448,7 @@ function New-GitHubPullRequest
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -501,7 +501,7 @@ function Get-GitHubEvents
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -639,7 +639,7 @@ function Get-GitHubRepositories
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -716,7 +716,7 @@ function Backup-GitHubRepositories
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -874,7 +874,7 @@ function Get-GitHubPullRequests
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -916,7 +916,7 @@ function Get-GitHubTeams
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -1040,7 +1040,7 @@ function New-GitHubRepository
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -1117,7 +1117,7 @@ function New-GitHubFork
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -1166,7 +1166,7 @@ function Clear-GitMergedBranches
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
