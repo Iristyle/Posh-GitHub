@@ -107,7 +107,7 @@ function New-GitHubOAuthToken
   }
   catch
   {
-    Write-Error "An unexpected error occurred (bad user/password?) $($Error[0])"
+    Write-Error "An unexpected error occurred (bad user/password?) $_"
   }
 }
 
@@ -145,7 +145,7 @@ function Get-GitHubOAuthTokens
   }
   catch
   {
-    Write-Error "An unexpected error occurred (bad user/password?) $($Error[0])"
+    Write-Error "An unexpected error occurred (bad user/password?) $_"
   }
 }
 
@@ -337,7 +337,7 @@ function Get-GitHubIssues
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -448,7 +448,7 @@ function New-GitHubPullRequest
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -501,7 +501,7 @@ function Get-GitHubEvents
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -639,7 +639,7 @@ function Get-GitHubRepositories
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -716,7 +716,7 @@ function Backup-GitHubRepositories
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -874,7 +874,7 @@ function Get-GitHubPullRequests
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -916,7 +916,7 @@ function Get-GitHubTeams
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -1040,7 +1040,7 @@ function New-GitHubRepository
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -1117,7 +1117,7 @@ function New-GitHubFork
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
@@ -1166,7 +1166,7 @@ function Clear-GitMergedBranches
   }
   catch
   {
-    Write-Error "An unexpected error occurred $($Error[0])"
+    Write-Error "An unexpected error occurred $_"
   }
 }
 
