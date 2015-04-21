@@ -548,12 +548,16 @@ function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction)
     $global:GITHUB_API_OUTPUT += ($response.Content | ConvertFrom-Json)
 
     if ($matches -ne $null) { $matches.Clear() }
-    $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
-      % { $matches[1] }
-  } while ($uri -ne $null)
 
-  #TODO: this blows up
-  #Write-Verbose $global:GITHUB_API_OUTPUT
+    $uri = $null
+
+    $pagination = $response.Headers.Link -match '\<(.*?)\>; rel="next"'
+    if ($pagination)
+    {
+        $uri = $matches[1]
+    }
+
+  } while ($uri -ne $null)
 
   Write-Host "Found $($global:GITHUB_API_OUTPUT.Count) repos for $Name"
 }
