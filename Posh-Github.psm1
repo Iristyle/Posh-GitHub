@@ -97,7 +97,7 @@ function New-GitHubOAuthToken
     Write-Verbose $global:GITHUB_API_OUTPUT
 
     $token = $GITHUB_API_OUTPUT | Select -ExpandProperty Token
-    Write-Host "New OAuth token is $token"
+    Write-Output "New OAuth token is $token"
 
     if (!$NoEnvironmentVariable)
     {
@@ -139,8 +139,8 @@ function Get-GitHubOAuthTokens
     $global:GITHUB_API_OUTPUT |
       % {
         $date = [DateTime]::Parse($_.created_at).ToString('g')
-        Write-Host "`n$($_.app.name) - Created $date"
-        Write-Host "`t$($_.token)`n`t$($_.app.url)"
+        Write-Output "`n$($_.app.name) - Created $date"
+        Write-Output "`t$($_.token)`n`t$($_.app.url)"
       }
   }
   catch
@@ -176,12 +176,12 @@ function GetRepoIssues($Owner, $Repository, $Milestone, $State, $Assignee,
   #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
   #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
 
-  Write-Host "Requesting issues for $Owner/$Repository"
+  Write-Output "Requesting issues for $Owner/$Repository"
   $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
   #Write-Verbose $global:GITHUB_API_OUTPUT
 
   $global:GITHUB_API_OUTPUT |
-    % { Write-Host "Issue $($_.number): $($_.title)" }
+    % { Write-Output "Issue $($_.number): $($_.title)" }
 }
 
 function GetUserIssues($Filter, $State, $Labels, $Sort, $Direction, $Since)
@@ -206,7 +206,7 @@ function GetUserIssues($Filter, $State, $Labels, $Sort, $Direction, $Since)
   #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
   #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
 
-  Write-Host "Requesting your issues"
+  Write-Output "Requesting your issues"
   $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
   #Write-Verbose $global:GITHUB_API_OUTPUT
 
@@ -216,8 +216,8 @@ function GetUserIssues($Filter, $State, $Labels, $Sort, $Direction, $Since)
       $repo = $_.url -match '^.*github.com\/repos\/(.*?)\/(.*?)/issues/.*$' |
         % { "$($matches[1])/$($matches[2])" }
 
-      Write-Host "Issue $($_.number) for $($repo): $($_.title)"
-      Write-Host "`t$($_.html_url)"
+      Write-Output "Issue $($_.number) for $($repo): $($_.title)"
+      Write-Output "`t$($_.html_url)"
     }
 }
 
@@ -297,7 +297,7 @@ function Get-GitHubIssues
               {
                 $Owner = $remotes.$_.owner
                 $Repository = $remotes.$_.repository
-                Write-Host "Found $_ remote with owner $Owner"
+                Write-Output "Found $_ remote with owner $Owner"
               }
             }
 
@@ -428,7 +428,7 @@ function New-GitHubPullRequest
     }
   }
 
-  Write-Host "Sending pull request to $Owner/$Repository from $Head"
+  Write-Output "Sending pull request to $Owner/$Repository from $Head"
 
   try
   {
@@ -444,7 +444,7 @@ function New-GitHubPullRequest
     Write-Verbose $global:GITHUB_API_OUTPUT
 
     $url = $global:GITHUB_API_OUTPUT | Select -ExpandProperty 'html_url'
-    Write-Host "Pull request sent to $url"
+    Write-Output "Pull request sent to $url"
   }
   catch
   {
@@ -492,10 +492,10 @@ function Get-GitHubEvents
         else
           { $_.payload.commits.message }
 
-        Write-Host "`n$($date): $firstLine"
+        Write-Output "`n$($date): $firstLine"
         if (![string]::IsNullOrEmpty($description))
         {
-          $description -split "`n" | % { Write-Host "`t$_" }
+          $description -split "`n" | % { Write-Output "`t$_" }
         }
       }
   }
@@ -559,7 +559,7 @@ function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction)
 
   } while ($uri -ne $null)
 
-  Write-Host "Found $($global:GITHUB_API_OUTPUT.Count) repos for $Name"
+  Write-Output "Found $($global:GITHUB_API_OUTPUT.Count) repos for $Name"
 }
 
 function Get-GitHubRepositories
@@ -632,12 +632,12 @@ function Get-GitHubRepositories
         #$private = if ($_.private) { ' ** Private **' } else { '' }
         $fork = if ($_.fork) { ' [F!]' } else { '' }
 
-        Write-Host ("`n$($_.name)$private$fork : Updated $pushed" +
+        Write-Output ("`n$($_.name)$private$fork : Updated $pushed" +
           " - [$($_.open_issues)] Issues - $size")
 
         if (![string]::IsNullOrEmpty($_.description))
         {
-          Write-Host "`t$($_.description)"
+          Write-Output "`t$($_.description)"
         }
       }
   }
@@ -749,7 +749,7 @@ function GetUserPullRequests($User, $State)
   #Write-Verbose $global:GITHUB_API_OUTPUT
 
   $forks = $global:GITHUB_API_OUTPUT.RepoList | ? { $_.fork }
-  Write-Host "Found $($forks.Count) forked repos for $User"
+  Write-Output "Found $($forks.Count) forked repos for $User"
 
   $forks |
     % {
@@ -768,19 +768,19 @@ function GetUserPullRequests($User, $State)
           $created = [DateTime]::Parse($_.created_at)
           $updated = [DateTime]::Parse($_.updated_at)
           $open = ([DateTime]::Now - $created).ToString('%d')
-          Write-Host "`n$($repo.name) pull $($_.number) - $($_.title)"
-          Write-Host "`tOpen for $open day(s) / Last Updated - $($updated.ToString('g'))"
-          Write-Host "`t$($_.issue_url)"
+          Write-Output "`n$($repo.name) pull $($_.number) - $($_.title)"
+          Write-Output "`tOpen for $open day(s) / Last Updated - $($updated.ToString('g'))"
+          Write-Output "`t$($_.issue_url)"
         }
     }
 
-  Write-Host "`nFound $totalCount $State pull requests for $User"
+  Write-Output "`nFound $totalCount $State pull requests for $User"
 }
 
 function GetRepoPullRequests($Owner, $Repository, $State)
 {
   $totalCount = 0
-  Write-Host "Getting $State pull requests for $Owner/$Repository"
+  Write-Output "Getting $State pull requests for $Owner/$Repository"
 
   $uri = ("https://api.github.com/repos/$Owner/$Repository/pulls" +
     "?access_token=${Env:\GITHUB_OAUTH_TOKEN}&state=$State");
@@ -794,12 +794,12 @@ function GetRepoPullRequests($Owner, $Repository, $State)
       $created = [DateTime]::Parse($_.created_at)
       $updated = [DateTime]::Parse($_.updated_at)
       $open = ([DateTime]::Now - $created).ToString('%d')
-      Write-Host "`n$($_.number) from $($_.user.login) - $($_.title) "
-      Write-Host "`tOpen for $open day(s) / Last Updated - $($updated.ToString('g'))"
-      Write-Host "`t$($_.issue_url)"
+      Write-Output "`n$($_.number) from $($_.user.login) - $($_.title) "
+      Write-Output "`tOpen for $open day(s) / Last Updated - $($updated.ToString('g'))"
+      Write-Output "`t$($_.issue_url)"
     }
 
-  Write-Host "`nFound $totalCount $State pull requests for $Owner/$Repository"
+  Write-Output "`nFound $totalCount $State pull requests for $Owner/$Repository"
 }
 
 function Get-GitHubPullRequests
@@ -844,7 +844,7 @@ function Get-GitHubPullRequests
               {
                 $Owner = $remotes.$_.owner
                 $Repository = $remotes.$_.repository
-                Write-Host "Found $_ remote with owner $Owner"
+                Write-Output "Found $_ remote with owner $Owner"
               }
             }
 
@@ -914,8 +914,8 @@ function Get-GitHubTeams
         $global:GITHUB_API_OUTPUT += $results
 
         $t = $results.Team
-        Write-Host "`n[$($t.id)] $($t.name) - $($t.permission) - $($t.repos_count) repos"
-        $results.Members | % { Write-Host "`t$($_.login)" }
+        Write-Output "`n[$($t.id)] $($t.name) - $($t.permission) - $($t.repos_count) repos"
+        $results.Members | % { Write-Output "`t$($_.login)" }
       }
   }
   catch
@@ -1037,7 +1037,7 @@ function New-GitHubRepository
     $global:GITHUB_API_OUTPUT = $repo
     #Write-Verbose $global:GITHUB_API_OUTPUT
 
-    Write-Host "$($repo.full_name) Created at $($repo.clone_url)"
+    Write-Output "$($repo.full_name) Created at $($repo.clone_url)"
 
     if (!($NoClone.ToBool()))
       { git clone $repo.clone_url }
@@ -1104,7 +1104,7 @@ function New-GitHubFork
     $global:GITHUB_API_OUTPUT = $fork
     #Write-Verbose $global:GITHUB_API_OUTPUT
 
-    Write-Host "$($fork.full_name) forked from $Owner/$Repository to ($($fork.clone_url))"
+    Write-Output "$($fork.full_name) forked from $Owner/$Repository to ($($fork.clone_url))"
 
     # forks are async, so clone the original repo, then tweak our remotes
     if (!$NoClone)
@@ -1112,9 +1112,9 @@ function New-GitHubFork
       $sourceRepo = "https://github.com/$Owner/$Repository.git"
       git clone $sourceRepo
       Push-Location $Repository
-      Write-Host "Resetting origin to $($fork.clone_url)"
+      Write-Output "Resetting origin to $($fork.clone_url)"
       git remote set-url origin $fork.clone_url
-      Write-Host "Adding origin as $sourceRepo"
+      Write-Output "Adding origin as $sourceRepo"
       git remote add upstream $sourceRepo
       Pop-Location
     }
@@ -1165,7 +1165,7 @@ function Clear-GitMergedBranches
         % { git branch -d $_.Trim() }
 
       $remaining = CountGitBranches
-      Write-Host "$($existing-$remaining) branches trimmed, $remaining branches total"
+      Write-Output "$($existing-$remaining) branches trimmed, $remaining branches total"
     }
   }
   catch
