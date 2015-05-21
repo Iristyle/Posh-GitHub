@@ -924,6 +924,120 @@ function Get-GitHubTeams
   }
 }
 
+function Get-GitHubTeamMembership
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]
+    $TeamName,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]
+    $UserNames
+  )
+
+  if ([string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
+    { throw "Team name and usernames must be supplied"}
+
+  ManageGitHubTeamMember -HttpMethod 'Get' -TeamName $TeamName -UserNames $UserNames
+}
+
+function Add-GitHubTeamMembership
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]
+    $TeamName,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]
+    $UserNames
+  )
+
+  if ([string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
+    { throw "Team name and usernames must be supplied"}
+
+  ManageGitHubTeamMember -HttpMethod 'Put' -TeamName $TeamName -UserNames $UserNames
+}
+
+function ManageGitHubTeamMember
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $HttpMethod = 'Get',
+
+    [Parameter(Mandatory = $true)]
+    [string]
+    $TeamName,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]
+    $UserNames
+  )
+
+  if ([string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
+    { throw "Team name and usernames must be supplied"}
+
+  $teamId = GetGitHubTeamId -TeamName $TeamName
+  $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+    
+  $global:GITHUB_API_OUTPUT = @()
+  $UserNames | foreach {
+    $userName = $_
+    $uri = "https://api.github.com/teams/$teamId/memberships/$userName$token";
+    try
+    {
+	  $response = Invoke-RestMethod -Uri $uri -Method $HttpMethod
+      $response | Add-Member -NotePropertyName userName -NotePropertyValue $userName
+      Write-Output "$($response.userName) - $($response.state) ($($response.url))"
+      $global:GITHUB_API_OUTPUT += $response
+    }
+    catch
+    {
+      Write-Error "$uri`r`nAn unexpected error occurred while adding user $userName $($Error[0])"
+    }
+  }
+}
+
+function GetGitHubTeamId
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
+    [Parameter(Mandatory = $true)]
+    [string]
+    $TeamName
+  )
+
+  if ([string]::IsNullOrEmpty($Organization))
+    { throw "An organization must be supplied"}
+
+  if ([string]::IsNullOrEmpty($TeamName))
+    { throw "A team name must be supplied"}
+
+  try
+  {
+    $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+    $uri = "https://api.github.com/orgs/$Organization/teams$token"
+
+    $teams = Invoke-RestMethod -Uri $uri
+
+    $global:GITHUB_API_OUTPUT = $teams | ? { $_.name -eq $TeamName }
+    $global:GITHUB_API_OUTPUT.id
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function New-GitHubRepository
 {
   [CmdletBinding(DefaultParameterSetName='user')]
@@ -1178,4 +1292,5 @@ Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
   Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
-  Clear-GitMergedBranches, Backup-GitHubRepositories
+  Clear-GitMergedBranches, Backup-GitHubRepositories,
+  Get-GitHubTeamMembership, Add-GitHubTeamMembership
