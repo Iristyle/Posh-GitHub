@@ -9,7 +9,7 @@ function Get-CurrentDirectory
 function GetRemotes
 {
   $remotes = @{}
-  #try to sniff out the repo based on 'upstream'
+  # Try to sniff out the repo based on 'upstream'
   if ($matches -ne $null) { $matches.Clear() }
   $gitRemotes = git remote -v show 2> $null
 
@@ -22,7 +22,7 @@ function GetRemotes
         Owner = $_.Matches.Groups[2].Value;
         Repository = ($_.Matches.Groups[3].Value -replace '\.git$', '');
       }
-
+    
       if (!$remotes.ContainsKey($repo.Name))
       {
         $remotes."$($repo.Name)" = $repo;
@@ -152,7 +152,7 @@ function Get-GitHubOAuthTokens
 function GetRepoIssues($Owner, $Repository, $Milestone, $State, $Assignee,
   $Creator, $Mentioned, $Labels, $Sort, $Direction, $Since)
 {
-  #TODO: follow link headers
+  # TODO: follow link headers
   if ($Since)
   {
     $culture = [Globalization.CultureInfo]::InvariantCulture
@@ -168,13 +168,13 @@ function GetRepoIssues($Owner, $Repository, $Milestone, $State, $Assignee,
   if ($Assignee) { $Assignee = "&assignee=$Assignee" }
 
   $uri = ("https://api.github.com/repos/$Owner/$Repository/issues" +
-   "?state=$state$Milestone$Assignee$Creator$Mentioned" +
-   "$labelsParam&sort=$Sort&direction=$Direction$Since" +
-   "&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+    "?state=$state$Milestone$Assignee$Creator$Mentioned" +
+    "$labelsParam&sort=$Sort&direction=$Direction$Since" +
+    "&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
-  #no way to set Accept header with Invoke-RestMethod
-  #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
-  #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
+  # No way to set Accept header with Invoke-RestMethod
+  # http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
+  # -Headers @{ Accept = 'application/vnd.github.v3.text+json' }
 
   Write-Output "Requesting issues for $Owner/$Repository"
   $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
@@ -186,7 +186,7 @@ function GetRepoIssues($Owner, $Repository, $Milestone, $State, $Assignee,
 
 function GetUserIssues($Filter, $State, $Labels, $Sort, $Direction, $Since)
 {
-  #TODO: follow link headers
+  # TODO: follow link headers
   $sinceParam, $labelsParam = '', ''
   if ($Since)
   {
@@ -202,9 +202,9 @@ function GetUserIssues($Filter, $State, $Labels, $Sort, $Direction, $Since)
     "?filter=$filter&state=$state$labelsParam&sort=$Sort" +
     "&direction=$Direction$sinceParam&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
-  #no way to set Accept header with Invoke-RestMethod
-  #http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
-  #-Headers @{ Accept = 'application/vnd.github.v3.text+json' }
+  # No way to set Accept header with Invoke-RestMethod
+  # http://connect.microsoft.com/PowerShell/feedback/details/757249/invoke-restmethod-accept-header#tabs
+  # -Headers @{ Accept = 'application/vnd.github.v3.text+json' }
 
   Write-Output "Requesting your issues"
   $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
@@ -275,7 +275,7 @@ function Get-GitHubIssues
 
     [Parameter(Mandatory = $false)]
     [DateTime]
-    #Optional string of a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ
+    # Optional string of a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ
     $Since
   )
 
@@ -290,7 +290,7 @@ function Get-GitHubIssues
         if ($missingOwner -and $missingRepo)
         {
           $remotes = GetRemotes
-          #first remote in order here wins!
+          # First remote in order here wins!
           'upstream', 'origin' |
             % {
               if ([string]::IsNullOrEmpty($Owner) -and $remotes.$_)
@@ -301,7 +301,7 @@ function Get-GitHubIssues
               }
             }
 
-          # with no parameters specified, fall back to user style
+          # With no parameters specified, fall back to user style
           if ([string]::IsNullOrEmpty($Owner))
           {
             if ([string]::IsNullOrEmpty($Env:GITHUB_OAUTH_TOKEN))
@@ -319,7 +319,7 @@ function Get-GitHubIssues
           throw "An Owner and Repository must be specified together"
         }
 
-        # accept null or lower case
+        # Accept null or lower case
         if ($Milestone) { $Milestone = $Milestone.ToLower() }
         GetRepoIssues $Owner $Repository $Milestone $State.ToLower() `
           $Assignee $Creator $Mentioned $Labels $Sort.ToLower() `
@@ -378,7 +378,7 @@ function New-GitHubPullRequest
 
   if ([string]::IsNullOrEmpty($Owner) -and [string]::IsNullOrEmpty($Repository))
   {
-    #try to sniff out the repo based on 'upstream'
+    # Try to sniff out the repo based on 'upstream'
     $remotes = GetRemotes
     if (!($remotes.upstream))
     {
@@ -406,9 +406,9 @@ function New-GitHubPullRequest
     $Head = "$($localUser):$($branchName)"
   }
 
-  #make sure this branch has been pushed
-  # TODO: this won't work with a SHA1 or detached HEAD I don't think
-  # so don't execute under those circumstances
+  # Make sure this branch has been pushed
+  # TODO: this won't work with a SHA1 or detached HEAD
+  # I don't think so don't execute under those circumstances
   $branchName = $Head -split ':' | Select -Last 1
   $pushed = git branch -r --contains $branchName |
     ? { $_ -match "origin/$branchName" }
@@ -469,7 +469,7 @@ function Get-GitHubEvents
       "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
     $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
-    #TODO: this blows up
+    # TODO: this blows up
     #Write-Verbose $global:GITHUB_API_OUTPUT
 
     $global:GITHUB_API_OUTPUT[($global:GITHUB_API_OUTPUT.Length - 1)..0] |
@@ -483,9 +483,8 @@ function Get-GitHubEvents
         else
           { "$type for $($_.repo.name)" }
 
-        #TODO: consider adding comment handling $_.payload.comment.body when
-        #type is 'CommitComment' - but need to be able to use accept header to
-        #get plaintext instead of markdown
+        # TODO: consider adding comment handling $_.payload.comment.body when type is 'CommitComment'
+        # but need to be able to use accept header to get plaintext instead of markdown
 
         $description = if ($type -eq 'Gist' )
           { "$($_.payload.gist.description)"}
@@ -632,8 +631,7 @@ function Get-GitHubRepositories
         #$private = if ($_.private) { ' ** Private **' } else { '' }
         $fork = if ($_.fork) { ' [F!]' } else { '' }
 
-        Write-Output ("`n$($_.name)$private$fork : Updated $pushed" +
-          " - [$($_.open_issues)] Issues - $size")
+        Write-Output ("`n$($_.name)$private$fork : Updated $pushed - [$($_.open_issues)] Issues - $size")
 
         if (![string]::IsNullOrEmpty($_.description))
         {
@@ -704,8 +702,8 @@ function Backup-GitHubRepositories
         $pulls |
           ? { ($_.user -ne $null) -and ($_.user.login -ne $owner) } |
           % {
-            # TODO: find issues.. clone them locally
-            # TODO: find wiki.. clone it locally
+            # TODO: find issues and clone them locally
+            # TODO: find wiki and clone it locally
             # $_.fork is set if its a fork
             if ($seen -notcontains $_.user.login)
             {
@@ -745,7 +743,7 @@ function GetUserPullRequests($User, $State)
       % { $matches[1] }
   } while ($uri -ne $null)
 
-  #TODO: this blows up
+  # TODO: this blows up
   #Write-Verbose $global:GITHUB_API_OUTPUT
 
   $forks = $global:GITHUB_API_OUTPUT.RepoList | ? { $_.fork }
@@ -837,7 +835,7 @@ function Get-GitHubPullRequests
         if ([string]::IsNullOrEmpty($Owner) -and [string]::IsNullOrEmpty($Repository))
         {
           $remotes = GetRemotes
-          #first remote in order here wins!
+          # First remote in order here wins!
           'upstream', 'origin' |
             % {
               if ([string]::IsNullOrEmpty($Owner) -and $remotes.$_)
@@ -848,7 +846,7 @@ function Get-GitHubPullRequests
               }
             }
 
-          # with no parameters specified, fall back to user style
+          # With no parameters specified, fall back to user style
           if ([string]::IsNullOrEmpty($Owner))
           {
             if ([string]::IsNullOrEmpty($User))
@@ -928,6 +926,10 @@ function Get-GitHubTeamMembership
 {
   [CmdletBinding()]
   param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
     [Parameter(Mandatory = $true)]
     [string]
     $TeamName,
@@ -937,16 +939,20 @@ function Get-GitHubTeamMembership
     $UserNames
   )
 
-  if ([string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
-    { throw "Team name and usernames must be supplied"}
+  if ([string]::IsNullOrEmpty($Organization) -or [string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
+    { throw "Organization name, team name and usernames must be supplied"}
 
-  ManageGitHubTeamMember -HttpMethod 'Get' -TeamName $TeamName -UserNames $UserNames
+  ManageGitHubTeamMembership -HttpMethod 'Get' -Organization $Organization -TeamName $TeamName -UserNames $UserNames
 }
 
 function Add-GitHubTeamMembership
 {
   [CmdletBinding()]
   param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
     [Parameter(Mandatory = $true)]
     [string]
     $TeamName,
@@ -956,13 +962,13 @@ function Add-GitHubTeamMembership
     $UserNames
   )
 
-  if ([string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
-    { throw "Team name and usernames must be supplied"}
+  if ([string]::IsNullOrEmpty($Organization) -or [string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
+    { throw "Organization name, team name and usernames must be supplied"}
 
-  ManageGitHubTeamMember -HttpMethod 'Put' -TeamName $TeamName -UserNames $UserNames
+  ManageGitHubTeamMembership -HttpMethod 'Put' -Organization $Organization -TeamName $TeamName -UserNames $UserNames
 }
 
-function ManageGitHubTeamMember
+function ManageGitHubTeamMembership
 {
   [CmdletBinding()]
   param(
@@ -970,6 +976,10 @@ function ManageGitHubTeamMember
     [string]
     $HttpMethod = 'Get',
 
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
     [Parameter(Mandatory = $true)]
     [string]
     $TeamName,
@@ -979,31 +989,104 @@ function ManageGitHubTeamMember
     $UserNames
   )
 
-  if ([string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
-    { throw "Team name and usernames must be supplied"}
+  if ([string]::IsNullOrEmpty($Organization) -or [string]::IsNullOrEmpty($TeamName) -or $UserNames.Length -eq 0)
+    { throw "Organization name, team name and usernames must be supplied"}
 
-  $teamId = GetGitHubTeamId -TeamName $TeamName
+  $teamId = Get-GitHubTeamId -Organization $Organization -TeamName $TeamName
   $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
-    
+
   $global:GITHUB_API_OUTPUT = @()
-  $UserNames | foreach {
-    $userName = $_
-    $uri = "https://api.github.com/teams/$teamId/memberships/$userName$token";
-    try
-    {
-	  $response = Invoke-RestMethod -Uri $uri -Method $HttpMethod
-      $response | Add-Member -NotePropertyName userName -NotePropertyValue $userName
-      Write-Output "$($response.userName) - $($response.state) ($($response.url))"
-      $global:GITHUB_API_OUTPUT += $response
+  $UserNames |
+    % {
+      $userName = $_
+      $uri = "https://api.github.com/teams/$teamId/memberships/$userName$token";
+      try
+      {
+        $response = Invoke-RestMethod -Uri $uri -Method $HttpMethod
+        $response | Add-Member -NotePropertyName userName -NotePropertyValue $userName
+        Write-Output "$($response.userName) - $($response.state) ($($response.url))"
+        $global:GITHUB_API_OUTPUT += $response
+      }
+      catch
+      {
+        Write-Error "$uri`r`nAn unexpected error occurred with user $userName $($Error[0])"
+      }
     }
-    catch
-    {
-      Write-Error "$uri`r`nAn unexpected error occurred while adding user $userName $($Error[0])"
-    }
+}
+
+function Get-GitHubTeamRepos
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
+    [Parameter(Mandatory = $true)]
+    [string]
+    $TeamName
+  )
+
+  if ([string]::IsNullOrEmpty($Organization) -or [string]::IsNullOrEmpty($TeamName))
+  { throw "Organization and team name must be supplied"}
+
+  $teamId = Get-GitHubTeamId -Organization $Organization -TeamName $TeamName
+  $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+
+  $global:GITHUB_API_OUTPUT = @()
+  $uri = "https://api.github.com/teams/$teamId/repos$token";
+  try
+  {
+    $response = Invoke-RestMethod -Uri $uri
+    $global:GITHUB_API_OUTPUT = $response
+    $response |
+      ? { $_.owner.login -eq $Organization } |
+      % { Write-Output "$($_.name) - ($($_.url))" }
+  }
+  catch
+  {
+    Write-Error "$uri`r`nAn unexpected error occurred while getting repositories for team $Organization\$TeamName $($Error[0])"
   }
 }
 
-function GetGitHubTeamId
+function Add-GitHubTeamRepo
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
+    [Parameter(Mandatory = $true)]
+    [string]
+    $TeamName,
+
+    [Parameter(Mandatory = $true)]
+    [string]
+    $RepoName
+  )
+
+  if ([string]::IsNullOrEmpty($Organization) -or [string]::IsNullOrEmpty($TeamName) -or [string]::IsNullOrEmpty($RepoName))
+    { throw "Organization, team and repo name must be supplied"}
+
+  $teamId = Get-GitHubTeamId -Organization $Organization -TeamName $TeamName
+  $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+
+  $uri = "https://api.github.com/teams/$teamId/repos/$Organization/$RepoName$token";
+
+  try
+  {
+    $response = Invoke-WebRequest -Method Put -Headers @{ 'Content-Length' = '0' } -Uri $uri
+    $global:GITHUB_API_OUTPUT = $response
+    Write-Output "Added repo $RepoName to team $TeamName of organization $Organization"
+  }
+  catch
+  {
+    Write-Error "$uri`r`nAn unexpected error occurred while adding repository $RepoName to team $Organization\$TeamName $($Error[0])"
+  }
+}
+
+function Get-GitHubTeamId
 {
   [CmdletBinding()]
   param(
@@ -1196,8 +1279,7 @@ function New-GitHubFork
   {
     if ([string]::IsNullOrEmpty($Env:GITHUB_ORG))
     {
-      throw ("When using -ForOrganization, -Organization must be specified or" +
-      " GITHUB_ORG must be set in the environment")
+      throw ("When using -ForOrganization, -Organization must be specified or GITHUB_ORG must be set in the environment")
     }
     $Organization = $Env:GITHUB_ORG
   }
@@ -1220,7 +1302,7 @@ function New-GitHubFork
 
     Write-Output "$($fork.full_name) forked from $Owner/$Repository to ($($fork.clone_url))"
 
-    # forks are async, so clone the original repo, then tweak our remotes
+    # Forks are async, so clone the original repo, then tweak our remotes
     if (!$NoClone)
     {
       $sourceRepo = "https://github.com/$Owner/$Repository.git"
@@ -1265,7 +1347,7 @@ function Clear-GitMergedBranches
 
     if ($Remote)
     {
-      # local branches that don't exist in remotes
+      # Local branches that don't exist in remotes
       git remote |
         % { git remote prune $_.Trim() }
     }
@@ -1273,7 +1355,7 @@ function Clear-GitMergedBranches
     {
       $existing = CountGitBranches
 
-      # local branches that have been merged
+      # Local branches that have been merged
       git branch --no-color --merged |
         ? {$_ -notmatch '^\*' } |
         % { git branch -d $_.Trim() }
@@ -1288,9 +1370,8 @@ function Clear-GitMergedBranches
   }
 }
 
-Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
-  Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories,
-  Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
-  Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
-  Clear-GitMergedBranches, Backup-GitHubRepositories,
-  Get-GitHubTeamMembership, Add-GitHubTeamMembership
+Export-ModuleMember -Function New-GitHubOAuthToken, New-GitHubPullRequest, Get-GitHubIssues,
+  Get-GitHubEvents, Get-GitHubRepositories, Get-GitHubPullRequests, Set-GitHubUserName,
+  Set-GitHubOrganization, Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
+  Clear-GitMergedBranches, Backup-GitHubRepositories, Get-GitHubTeamMembership,
+  Add-GitHubTeamMembership, Get-GitHubTeamRepos, Add-GitHubTeamRepo, Get-GitHubTeamId
