@@ -536,27 +536,10 @@ function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction)
     'user' { $uri = "https://api.github.com/users/$Name/repos" }
   }
 
-  $uri += ("?type=$Type&sort=$Sort" +
-    "&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+  $uri += ("?type=$Type&sort=$Sort&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
-  $global:GITHUB_API_OUTPUT = @()
-
-  do
-  {
-    $response = Invoke-WebRequest -Uri $uri
-    $global:GITHUB_API_OUTPUT += ($response.Content | ConvertFrom-Json)
-
-    if ($matches -ne $null) { $matches.Clear() }
-
-    $uri = $null
-
-    $pagination = $response.Headers.Link -match '\<(.*?)\>; rel="next"'
-    if ($pagination)
-    {
-        $uri = $matches[1]
-    }
-
-  } while ($uri -ne $null)
+  Write-Output $uri
+  $global:GITHUB_API_OUTPUT = Get-AllPagesResults -Uri $uri
 
   Write-Output "Found $($global:GITHUB_API_OUTPUT.Count) repos for $Name"
 }
@@ -733,15 +716,7 @@ function GetUserPullRequests($User, $State)
     Repos = @();
   }
 
-  do
-  {
-    $response = Invoke-WebRequest -Uri $uri
-    $global:GITHUB_API_OUTPUT.RepoList += ($response.Content | ConvertFrom-Json)
-
-    if ($matches -ne $null) { $matches.Clear() }
-    $uri = $response.Headers.Link -match '\<(.*?)\>; rel="next"' |
-      % { $matches[1] }
-  } while ($uri -ne $null)
+  $global:GITHUB_API_OUTPUT.RepoList = Get-AllPagesResults -Uri $uri
 
   # TODO: this blows up
   #Write-Verbose $global:GITHUB_API_OUTPUT
@@ -896,23 +871,23 @@ function Get-GitHubTeams
   {
     $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
     $uri = "https://api.github.com/orgs/$Organization/teams$token"
-    $teamIds = Invoke-RestMethod -Uri $uri
-    #Write-Verbose $global:GITHUB_API_OUTPUT
 
+    $teams = Get-AllPagesResults -Uri $uri
+    
     $global:GITHUB_API_OUTPUT = @()
-    $teamIds |
+    $teams |
       % {
         $teamUri = "https://api.github.com/teams/$($_.id)$token";
         $membersUri = "https://api.github.com/teams/$($_.id)/members$token";
         $results = @{
           Team = Invoke-RestMethod -Uri $teamUri;
-          Members = Invoke-RestMethod -Uri $membersUri;
+          Members = Get-AllPagesResults -Uri $membersUri;
         }
 
         $global:GITHUB_API_OUTPUT += $results
 
-        $t = $results.Team
-        Write-Output "`n[$($t.id)] $($t.name) - $($t.permission) - $($t.repos_count) repos"
+        $team = $results.Team
+        Write-Output "`n[$($team.id)] $($team.name) - $($team.permission) - $($team.repos_count) repos"
         $results.Members | % { Write-Output "`t$($_.login)" }
       }
   }
@@ -1369,6 +1344,39 @@ function Clear-GitMergedBranches
     Write-Error "An unexpected error occurred $($Error[0])"
   }
 }
+
+function Get-AllPagesResults
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]
+    $Uri
+  )
+
+  $pageUri = $Uri
+  $results = @()
+  
+  do
+  {
+    $response = Invoke-WebRequest -Uri $pageUri
+    $results += ($response.Content | ConvertFrom-Json)
+
+    if ($matches -ne $null) { $matches.Clear() }
+
+    $pageUri = $null
+
+    $pagination = $response.Headers.Link -match '\<(.*?)\>; rel="next"'
+    if ($pagination)
+    {
+      $pageUri = $matches[1]
+    }
+  }
+  while ($pageUri -ne $null)
+  
+  return $results
+}
+
 
 Export-ModuleMember -Function New-GitHubOAuthToken, New-GitHubPullRequest, Get-GitHubIssues,
   Get-GitHubEvents, Get-GitHubRepositories, Get-GitHubPullRequests, Set-GitHubUserName,
