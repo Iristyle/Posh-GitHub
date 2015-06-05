@@ -537,8 +537,6 @@ function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction)
   }
 
   $uri += ("?type=$Type&sort=$Sort&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
-
-  Write-Output $uri
   $global:GITHUB_API_OUTPUT = Get-AllPagesResults -Uri $uri
 
   Write-Output "Found $($global:GITHUB_API_OUTPUT.Count) repos for $Name"
@@ -606,8 +604,7 @@ function Get-GitHubRepositories
 
     $global:GITHUB_API_OUTPUT |
       % {
-        $size = if ($_.size -lt 1024) { "$($_.size) KB" }
-          else { "$([Math]::Round($_.size, 2)) MB"}
+        $size = if ($_.size -lt 1024) { "$($_.size) KB" } else { "$([Math]::Round($_.size, 2)) MB"}
         $pushed = [DateTime]::Parse($_.pushed_at).ToString('g')
         $created = [DateTime]::Parse($_.created_at).ToString('g')
 
