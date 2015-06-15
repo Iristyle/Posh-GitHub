@@ -852,6 +852,48 @@ function Get-GitHubPullRequests
   }
 }
 
+function Get-GitHubOrgMembers
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG
+  )
+
+  if ([string]::IsNullOrEmpty($Organization))
+    { throw "An organization must be supplied"}
+
+  try
+  {
+    $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+    $uri = "https://api.github.com/orgs/$Organization/members$token"
+
+    $members = Get-AllPagesResults -Uri $uri
+    
+    $global:GITHUB_API_OUTPUT = @()
+    $members |
+      % {
+        $userUri = "https://api.github.com/users/$($_.login)$token";
+        $userDetails = Invoke-RestMethod -Uri $userUri;
+        $results = @{
+          Id = $_.id;
+          Login = $_.login;
+          Name = $userDetails.Name
+          Email = $userDetails.Email
+        }
+
+        $global:GITHUB_API_OUTPUT += $results
+        
+        $results | % { Write-Output "[$($_.Id)] $($_.Login) ($($_.Name) <$($_.Email)>)" }
+      }
+  }
+  catch
+  {
+    Write-Error "An unexpected error occurred $($Error[0])"
+  }
+}
+
 function Get-GitHubTeams
 {
   [CmdletBinding()]
@@ -1377,6 +1419,6 @@ function Get-AllPagesResults
 
 Export-ModuleMember -Function New-GitHubOAuthToken, New-GitHubPullRequest, Get-GitHubIssues,
   Get-GitHubEvents, Get-GitHubRepositories, Get-GitHubPullRequests, Set-GitHubUserName,
-  Set-GitHubOrganization, Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
-  Clear-GitMergedBranches, Backup-GitHubRepositories, Get-GitHubTeamMembership,
+  Set-GitHubOrganization, Get-GitHubOrgMembers, Get-GitHubTeams, New-GitHubRepository,
+  New-GitHubFork, Clear-GitMergedBranches, Backup-GitHubRepositories, Get-GitHubTeamMembership,
   Add-GitHubTeamMembership, Get-GitHubTeamRepos, Add-GitHubTeamRepo, Get-GitHubTeamId
