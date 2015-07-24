@@ -1051,7 +1051,7 @@ function Get-GitHubTeamRepos
   $uri = "https://api.github.com/teams/$teamId/repos$token";
   try
   {
-    $response = Invoke-RestMethod -Uri $uri
+    $response = Get-AllPagesResults -Uri $uri
     $global:GITHUB_API_OUTPUT = $response
     $response |
       ? { $_.owner.login -eq $Organization } |
