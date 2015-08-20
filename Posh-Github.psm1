@@ -1075,6 +1075,10 @@ function Add-GitHubTeamRepo
     [string]
     $TeamName,
 
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Permission = 'none',
+
     [Parameter(Mandatory = $true)]
     [string]
     $RepoName
@@ -1090,9 +1094,17 @@ function Add-GitHubTeamRepo
 
   try
   {
-    $response = Invoke-WebRequest -Method Put -Headers @{ 'Content-Length' = '0' } -Uri $uri
+    if ($Permission -eq 'none' -or $Permission -eq 'pull')
+    {
+      $response = Invoke-WebRequest -Method Put -Headers @{ 'Content-Length' = '0' } -Uri $uri
+    }
+    else
+    {
+      $parameters = @{ 'permission' = $Permission } | ConvertTo-Json
+      $response = Invoke-WebRequest -Method Put -Headers @{ 'Accept' = 'application/vnd.github.ironman-preview+json' } -Uri $uri -Body $parameters
+    }
     $global:GITHUB_API_OUTPUT = $response
-    Write-Output "Added repo $RepoName to team $TeamName of organization $Organization"
+    Write-Output "Added repo $RepoName to team $TeamName of organization $Organization with permission $Permission"
   }
   catch
   {
