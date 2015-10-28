@@ -529,7 +529,7 @@ function Set-GitHubOrganization
   $Env:GITHUB_ORG = $Organization
 }
 
-function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction)
+function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction,$OAuthToken)
 {
   switch ($SearchType)
   {
@@ -538,7 +538,7 @@ function GetGitHubRepos($SearchType, $Name, $Type, $Sort, $Direction)
   }
 
   $uri += ("?type=$Type&sort=$Sort" +
-    "&direction=$Direction&access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+    "&direction=$Direction&access_token=$OAuthToken")
 
   $global:GITHUB_API_OUTPUT = @()
 
@@ -588,7 +588,11 @@ function Get-GitHubRepositories
     [string]
     [ValidateSet('asc', 'desc')]
     [AllowNull()]
-    $Direction = $null
+    $Direction = $null,
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Token=$Env:GITHUB_OAUTH_TOKEN
   )
 
   try
@@ -616,7 +620,7 @@ function Get-GitHubRepositories
       $Direction = if ($Sort -eq 'full_name') { 'asc' } else { 'desc' }
     }
 
-    GetGitHubRepos $PsCmdlet.ParameterSetName $name $Type $Sort $Direction
+    GetGitHubRepos $PsCmdlet.ParameterSetName $name $Type $Sort $Direction $Token
 
     $global:GITHUB_API_OUTPUT |
       % {
