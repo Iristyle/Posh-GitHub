@@ -1218,8 +1218,55 @@ function Clear-GitMergedBranches
   }
 }
 
+function GetRefStatus($Owner, $Repository, $Ref)
+{
+    Write-Host "GetRefStatus $Owner $Repository $Ref"
+
+    $uri = ("https://api.github.com/repos/$Owner/$Repository/statuses/$Ref" +
+      "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+    Invoke-RestMethod -Uri $uri
+}
+
+function Get-GitHubStatus {
+    [CmdletBinding(DefaultParameterSetName='repo')]
+    param(
+        [Parameter(Mandatory = $false, Position=0)]
+        [string]
+        $Owner = "",
+
+        [Parameter(Mandatory = $false, Position=1)]
+        [string]
+        $Repository = "",
+
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]
+        $Ref = $null
+    )
+
+
+    $repo = ResolveRepository $Owner $Repository
+    $Owner = $repo[0]
+    $Repository = $repo[1]
+
+    $missing = IsMissing $Repository
+
+    if((IsMissing $Owner) -or (IsMissing $Repository)) {
+      throw ("Cound not find suitable Owner/Repository")
+    } elseif(IsMissing $Ref) {
+      throw ("Ref missing. Statuses are always related to a SHA, branch name or tag name")
+    }
+
+    $response = GetRefStatus $Owner $Repository $Ref
+    
+    $response | ForEach {
+      Write-Host "$($_.updated_at) $($_.state) - $($_.description)"
+    }
+}
+
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
   Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
-  Clear-GitMergedBranches, Backup-GitHubRepositories
+  Clear-GitMergedBranches, Backup-GitHubRepositories,
+  Get-GitHubStatus
