@@ -1220,12 +1220,40 @@ function Clear-GitMergedBranches
 
 function GetRefStatus($Owner, $Repository, $Ref)
 {
-    Write-Host "GetRefStatus $Owner $Repository $Ref"
-
     $uri = ("https://api.github.com/repos/$Owner/$Repository/statuses/$Ref" +
       "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
 
     Invoke-RestMethod -Uri $uri
+}
+
+function SetRefStatus($Owner, $Repository, $Ref, $State, $Description, $Context, $TargetUrl)
+{
+    $uri = ("https://api.github.com/repos/$Owner/$Repository/statuses/$Ref" +
+      "?access_token=${Env:\GITHUB_OAUTH_TOKEN}")
+
+    if(IsMissing $Context) {
+      $Context = "default"
+    }
+
+    $postData = @{
+      state = $State
+      description = $Description
+      context = $Context
+    }
+
+    if(-not(IsMissing $TargetUrl)) {
+      $postData.target_url = $TargetUrl
+    }
+
+    $params = @{
+      Uri = $uri;
+      Method = 'POST';
+      ContentType = 'application/json'
+      Body = (ConvertTo-Json $postData -Compress)
+    }
+
+    Invoke-RestMethod @params
+
 }
 
 function Get-GitHubStatus {
@@ -1264,9 +1292,56 @@ function Get-GitHubStatus {
     }
 }
 
+function Set-GitHubStatus {
+    [CmdletBinding(DefaultParameterSetName='repo')]
+    param(
+        [Parameter(Mandatory = $true, Position=0)]
+        [string]
+        $Owner = "",
+
+        [Parameter(Mandatory = $true, Position=1)]
+        [string]
+        $Repository = "",
+
+        [Parameter(Mandatory = $true, Position=2)]
+        [string]
+        $Ref = $null,
+
+        [Parameter(Mandatory = $false, Position=3)]
+        [ValidateSet('pending', 'success', 'error', 'failure')]
+        $State = $null,
+
+        [Parameter(Mandatory = $false, Position=4)]
+        [string]
+        $Description = $null,
+
+        [Parameter(Mandatory = $false)]
+        [string]
+        $Context = "default",
+
+        [Parameter(Mandatory = $false)]
+        [string]
+        $TargetUrl = $null
+    )
+
+    $repo = ResolveRepository $Owner $Repository
+    $Owner = $repo[0]
+    $Repository = $repo[1]
+
+    $missing = IsMissing $Repository
+
+    if((IsMissing $Owner) -or (IsMissing $Repository)) {
+      throw ("Cound not find suitable Owner/Repository")
+    } elseif(IsMissing $Ref) {
+      throw ("Ref missing. Statuses are always related to a SHA, branch name or tag name")
+    }
+
+    SetRefStatus $Owner $Repository $Ref $State $Description $Context $TargetUrl
+}
+
 Export-ModuleMember -Function  New-GitHubOAuthToken, New-GitHubPullRequest,
   Get-GitHubIssues, Get-GitHubEvents, Get-GitHubRepositories,
   Get-GitHubPullRequests, Set-GitHubUserName, Set-GitHubOrganization,
   Get-GitHubTeams, New-GitHubRepository, New-GitHubFork,
   Clear-GitMergedBranches, Backup-GitHubRepositories,
-  Get-GitHubStatus
+  Get-GitHubStatus, Set-GitHubStatus
