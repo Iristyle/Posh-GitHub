@@ -32,6 +32,65 @@ function GetRemotes
   return $remotes
 }
 
+function FallBackToUserStyle($Owner, $Repository)
+{
+     # with no parameters specified, fall back to user style
+    if ([string]::IsNullOrEmpty($Owner) -or [string]::IsNullOrEmpty($Repository))
+    {
+        if ([string]::IsNullOrEmpty($Env:GITHUB_OAUTH_TOKEN))
+        {
+            throw ("Could not find valid repository to query for issues" +
+                " and no GITHUB_OAUTH_TOKEN was found ")
+        }
+        return $true
+    }
+    return $false
+}
+
+function IsMissing($Value)
+{
+  [string]::IsNullOrEmpty($Value)
+}
+
+function ResolveRepository()
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false, Position=0)]
+        [string]
+        $Owner = $null,
+
+        [Parameter(Mandatory = $false, Position=1)]
+        [string]
+        $Repository = $null
+    )
+
+    if ((IsMissing $Owner) -and (IsMissing $Repository))
+    {
+        $remotes = GetRemotes
+        #first remote in order here wins!
+        'upstream', 'origin' |
+        % {
+            if ([string]::IsNullOrEmpty($Owner) -and $remotes.$_)
+            {
+                $Owner = $remotes.$_.owner
+                $Repository = $remotes.$_.repository
+                Write-Host "Found $_ remote $Owner/$Repository"
+            } else {
+                $Owner = $null
+                $Repository = $null
+            }
+        }
+    }
+    elseif ($missingOwner -or $missingRepo)
+    {
+        throw "An Owner and Repository must be specified together"
+    }
+
+    $Owner
+    $Repository
+}
+
 # Get-GitDirectory and Get-LocalOrParentPath are Posh-Git helpers
 function Get-GitDirectory
 {
@@ -225,7 +284,7 @@ function Get-GitHubIssues
 {
   [CmdletBinding(DefaultParameterSetName='repo')]
   param(
-    [Parameter(Mandatory = $false, Position=0,  ParameterSetName='repo')]
+    [Parameter(Mandatory = $false, Position=0, ParameterSetName='repo')]
     [string]
     $Owner = $null,
 
@@ -285,42 +344,31 @@ function Get-GitHubIssues
     {
       'repo'
       {
+        $repo = ResolveRepository $Owner $Repository
+        $Owner = $repo[0]
+        $Repository = $repo[1]
+
+        if(FallBackToUserStyle $Owner $Repository)
+        {
+          return GetUserIssues $Filter.ToLower() $State.ToLower() $Labels `
+            $Sort.ToLower() $Direction.ToLower() $PsBoundParameters.Since
+        } else {
+          echo "Repo-Style"
+        }
+
         $missingOwner = [string]::IsNullOrEmpty($Owner)
         $missingRepo = [string]::IsNullOrEmpty($Repository)
-        if ($missingOwner -and $missingRepo)
-        {
-          $remotes = GetRemotes
-          #first remote in order here wins!
-          'upstream', 'origin' |
-            % {
-              if ([string]::IsNullOrEmpty($Owner) -and $remotes.$_)
-              {
-                $Owner = $remotes.$_.owner
-                $Repository = $remotes.$_.repository
-                Write-Host "Found $_ remote with owner $Owner"
-              }
-            }
 
-          # with no parameters specified, fall back to user style
-          if ([string]::IsNullOrEmpty($Owner))
-          {
-            if ([string]::IsNullOrEmpty($Env:GITHUB_OAUTH_TOKEN))
-            {
-              throw ("Could not find valid repository to query for issues" +
-                " and no GITHUB_OAUTH_TOKEN was found ")
-            }
-
-            return GetUserIssues $Filter.ToLower() $State.ToLower() $Labels `
-              $Sort.ToLower() $Direction.ToLower() $PsBoundParameters.Since
-          }
-        }
-        elseif ($missingOwner -or $missingRepo)
+        if ($missingOwner -or $missingRepo)
         {
           throw "An Owner and Repository must be specified together"
         }
 
         # accept null or lower case
-        if ($Milestone) { $Milestone = $Milestone.ToLower() }
+        if ($Milestone) {
+          $Milestone = $Milestone.ToLower() 
+        }
+
         GetRepoIssues $Owner $Repository $Milestone $State.ToLower() `
           $Assignee $Creator $Mentioned $Labels $Sort.ToLower() `
           $Direction.ToLower() $PsBoundParameters.Since
