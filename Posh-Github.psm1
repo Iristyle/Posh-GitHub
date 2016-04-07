@@ -1136,7 +1136,7 @@ function Get-GitHubTeamId
     $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
     $uri = "https://api.github.com/orgs/$Organization/teams$token"
 
-    $teams = Invoke-RestMethod -Uri $uri
+    $teams = Get-AllPagesResults -Uri $uri
 
     $global:GITHUB_API_OUTPUT = $teams | ? { $_.name -eq $TeamName }
     $global:GITHUB_API_OUTPUT.id
