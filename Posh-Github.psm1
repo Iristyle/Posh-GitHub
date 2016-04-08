@@ -1396,6 +1396,30 @@ function Clear-GitMergedBranches
   }
 }
 
+function Get-RepoCommitsPerUser
+{
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]
+    $Organization = $Env:GITHUB_ORG,
+
+    [Parameter(Mandatory = $true)]
+    [string]
+    $RepoName
+  )
+
+  if ([string]::IsNullOrEmpty($Organization))
+    { throw "Organization, Organization must be supplied"}
+
+  $token = "?access_token=${Env:\GITHUB_OAUTH_TOKEN}"
+  $uri = "https://api.github.com/repos/$Organization/$RepoName/commits$token";
+
+  $response = Get-AllPagesResults -Uri $uri
+  $global:GITHUB_API_OUTPUT = $response
+  $response | % { $_.commit.committer.name } | Group-Object | Select-Object Name, Count
+}
+
 function Get-AllPagesResults
 {
   [CmdletBinding()]
@@ -1433,4 +1457,4 @@ Export-ModuleMember -Function New-GitHubOAuthToken, New-GitHubPullRequest, Get-G
   Get-GitHubEvents, Get-GitHubRepositories, Get-GitHubPullRequests, Set-GitHubUserName,
   Set-GitHubOrganization, Get-GitHubOrgMembers, Get-GitHubTeams, New-GitHubRepository,
   New-GitHubFork, Clear-GitMergedBranches, Backup-GitHubRepositories, Get-GitHubTeamMembership,
-  Add-GitHubTeamMembership, Get-GitHubTeamRepos, Add-GitHubTeamRepo, Get-GitHubTeamId
+  Add-GitHubTeamMembership, Get-GitHubTeamRepos, Add-GitHubTeamRepo, Get-GitHubTeamId, Get-RepoCommitsPerUser
