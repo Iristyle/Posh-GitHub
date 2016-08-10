@@ -828,7 +828,7 @@ function Get-GitHubPullRequests
     [ValidateSet('open', 'closed')]
     $State = 'open',
 
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, ParameterSetName='repo')]
     [string]
     $PrNumber = ''
   )
