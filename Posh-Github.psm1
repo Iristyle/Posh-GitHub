@@ -773,13 +773,18 @@ function GetUserPullRequests($User, $State)
   Write-Host "`nFound $totalCount $State pull requests for $User"
 }
 
-function GetRepoPullRequests($Owner, $Repository, $State)
+function GetRepoPullRequests($Owner, $Repository, $State, $PrNumber)
 {
   $totalCount = 0
   Write-Host "Getting $State pull requests for $Owner/$Repository"
+  $baseUri = "https://api.github.com/repos/$Owner/$Repository/pulls"
 
-  $uri = ("https://api.github.com/repos/$Owner/$Repository/pulls" +
-    "?access_token=${Env:\GITHUB_OAUTH_TOKEN}&state=$State");
+  if (![string]::IsNullOrEmpty($PrNumber)) 
+  {
+    $baseUri += "/" + $PrNumber;
+  }
+
+  $uri = ($baseUri + "?access_token=${Env:\GITHUB_OAUTH_TOKEN}&state=$State");
 
   $global:GITHUB_API_OUTPUT = Invoke-RestMethod -Uri $uri
   #Write-Verbose $global:GITHUB_API_OUTPUT
@@ -821,7 +826,11 @@ function Get-GitHubPullRequests
     [Parameter(Mandatory = $false)]
     [string]
     [ValidateSet('open', 'closed')]
-    $State = 'open'
+    $State = 'open',
+
+    [Parameter(Mandatory = $false)]
+    [string]
+    $PrNumber = ''
   )
 
   try
@@ -861,7 +870,7 @@ function Get-GitHubPullRequests
           throw "An Owner and Repository must be specified together"
         }
 
-        GetRepoPullRequests $Owner $Repository $State.ToLower()
+        GetRepoPullRequests $Owner $Repository $State.ToLower() $PrNumber
       }
       'user'
       {
